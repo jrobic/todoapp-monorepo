@@ -1,0 +1,16 @@
+{
+  "name": "todoapp-monorepo",
+  "version": "0.0.1",
+  "description": "",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@8.6.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["rust, htmx, svelte, react, todoapp, tracing, monitoring, tailwindcss"],
+  "author": "Jonathan Robic <hello@jonathanrobic.fr>",
+  "license": "MIT"
+}
