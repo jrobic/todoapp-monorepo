@@ -78,7 +78,9 @@ where
 }
 
 #[derive(Serialize, ToSchema)]
-#[aliases(ApiResponseTodo = ApiResponseObject<Todo>)]
+// it's not possible to use a generic type as a field in a struct with utoipa
+// it's not ideal but we can use aliases to workaround this limitation
+#[aliases(ApiResponseTodo = ApiResponseObject<Todo>, ApiResponseListTodos = ApiResponseObject<Vec<Todo>>)]
 pub struct ApiResponseObject<T>
 where
 	T: Serialize,

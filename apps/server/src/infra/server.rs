@@ -19,7 +19,11 @@ pub fn create_server() -> Router {
 		Arc::new(repository::todo_inmemory_repo::TodoInMemoryRepository::new());
 
 	let todo_router = Router::new()
-		.route("/", post(controller::todo_ctrl::create_todo_ctrl))
+		.route(
+			"/todos",
+			get(controller::todo_ctrl::get_all_todos_ctrl)
+				.post(controller::todo_ctrl::create_todo_ctrl),
+		)
 		.with_state(todo_repo);
 
 	Router::new()

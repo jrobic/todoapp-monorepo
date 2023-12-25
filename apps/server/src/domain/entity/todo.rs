@@ -7,7 +7,6 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct Todo {
 	pub id: Uuid,
-	#[schema(example = "Buy milk")]
 	pub description: String,
 	pub done: bool,
 	pub created_at: chrono::DateTime<chrono::Utc>,

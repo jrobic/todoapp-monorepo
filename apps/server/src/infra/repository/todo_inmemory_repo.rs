@@ -4,7 +4,7 @@ use axum::async_trait;
 
 use crate::domain::{
 	entity::todo::Todo,
-	repository::todo_repository::{CreateTodoError, TodoRepository},
+	repository::todo_repository::{CreateTodoError, FindManyTodoError, TodoRepository},
 };
 
 pub struct TodoInMemoryRepository {
@@ -32,8 +32,27 @@ impl TodoRepository for TodoInMemoryRepository {
 
 		todos.push(todo.clone());
 
-		dbg!("todos len: {}", todos.len());
-
 		Ok(todo)
+	}
+
+	async fn find_many_todos(
+		&self,
+		search_term: Option<String>,
+	) -> Result<Vec<Todo>, FindManyTodoError> {
+		let todos = self.todos.lock().unwrap();
+
+		if let Some(search_term) = search_term {
+			let todos = todos
+				.iter()
+				.filter(|todo| {
+					todo.description.to_lowercase().contains(&search_term.to_lowercase())
+				})
+				.cloned()
+				.collect::<Vec<Todo>>();
+
+			return Ok(todos);
+		}
+
+		Ok(todos.clone())
 	}
 }
