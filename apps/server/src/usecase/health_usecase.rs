@@ -1,4 +1,4 @@
-use crate::domain::entity::health_entity::Health;
+use crate::domain::entity::health::Health;
 
 pub struct HealthUsecase {}
 
