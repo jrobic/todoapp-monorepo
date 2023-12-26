@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use axum::{
-	routing::{get, post},
-	Router,
-};
+use axum::routing;
+use axum::{routing::get, Router};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -21,8 +19,20 @@ pub fn create_server() -> Router {
 	let todo_router = Router::new()
 		.route(
 			"/todos",
-			get(controller::todo_ctrl::get_all_todos_ctrl)
+			routing::get(controller::todo_ctrl::get_all_todos_ctrl)
 				.post(controller::todo_ctrl::create_todo_ctrl),
+		)
+		.route(
+			"/todos/:id",
+			routing::delete(controller::todo_ctrl::delete_todo_ctrl),
+		)
+		.route(
+			"/todos/:id/mark_as_done",
+			routing::patch(controller::todo_ctrl::mark_as_done_todo_ctrl),
+		)
+		.route(
+			"/todos/:id/mark_as_undone",
+			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
 		)
 		.with_state(todo_repo);
 

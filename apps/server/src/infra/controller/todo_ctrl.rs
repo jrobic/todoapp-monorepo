@@ -1,17 +1,19 @@
 use axum::{
-	extract::{Query, State},
+	extract::{Path, Query, State},
 	http::StatusCode,
 	Json,
 };
 use serde::Deserialize;
 use utoipa::IntoParams;
+use uuid::Uuid;
 
 use crate::{
 	domain::{entity::todo::Todo, repository::todo_repository::DynTodoRepository},
 	infra::api_response::{ApiResponse, ApiResponseData},
 	usecase::{
 		create_todo_usecase::{self, CreateTodoParams},
-		get_all_todos_usecase, search_todos_usecase,
+		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
+		search_todos_usecase,
 	},
 };
 
@@ -82,4 +84,75 @@ pub async fn get_all_todos_ctrl(
 			Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
 		},
 	}
+}
+
+#[utoipa::path(
+	tag = "Todo",
+	delete,
+	path = "/todos/{id}",
+	params(
+		("id" = Uuid, Path, description = "Todo item id"),
+	),
+	responses(
+		(status = 204, description = "Todo item deleted successfully"),
+		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
+	)
+)]
+pub async fn delete_todo_ctrl(
+	State(_todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> ApiResponse<()> {
+	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&_todo_repo);
+
+	delete_todo_usecase.exec(id).await?;
+
+	Ok(ApiResponseData::status_code(StatusCode::NO_CONTENT))
+}
+
+#[utoipa::path(
+	tag = "Todo",
+	patch,
+	path = "/todos/{id}/mark_as_done",
+	params(
+		("id" = Uuid, Path, description = "Todo item id"),
+	),
+	responses(
+		(status = 200, description = "Todo item marked as done successfully", body = ApiResponseTodo),
+		(status = 422, description = "Todo item not exists", body = ApiResponseErrorObject),
+		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
+	)
+)]
+pub async fn mark_as_done_todo_ctrl(
+	State(_todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> ApiResponse<Todo> {
+	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+
+	let todo = mark_as_done_usecase.exec(id, true).await?;
+
+	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
+}
+
+#[utoipa::path(
+	tag = "Todo",
+	patch,
+	path = "/todos/{id}/mark_as_undone",
+	params(
+		("id" = Uuid, Path, description = "Todo item id"),
+	),
+	responses(
+		(status = 200, description = "Todo item marked as undone successfully", body = ApiResponseTodo),
+		(status = 422, description = "Todo item not exists", body = ApiResponseErrorObject),
+		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
+	)
+)]
+pub async fn mark_as_undone_todo_ctrl(
+	State(_todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> ApiResponse<Todo> {
+	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+
+	let todo = mark_as_done_usecase.exec(id, false).await?;
+
+	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
 }

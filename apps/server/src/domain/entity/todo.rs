@@ -11,7 +11,6 @@ pub struct Todo {
 	pub done: bool,
 	pub created_at: chrono::DateTime<chrono::Utc>,
 	pub updated_at: chrono::DateTime<chrono::Utc>,
-	pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 	pub done_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -23,7 +22,6 @@ impl Todo {
 			done: false,
 			created_at: chrono::Utc::now(),
 			updated_at: chrono::Utc::now(),
-			deleted_at: None,
 			done_at: None,
 		}
 	}

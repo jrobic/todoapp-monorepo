@@ -95,9 +95,7 @@ pub struct ApiResponseError(anyhow::Error);
 
 #[derive(Serialize, ToSchema)]
 pub struct ApiResponseErrorObject {
-	#[schema(example = "409 Conflict")]
 	status: String,
-	#[schema(example = "Todo already exists")]
 	error: String,
 }
 
