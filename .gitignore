@@ -33,3 +33,6 @@ coverage
 /target
 *.profraw
 
+
+# node
+node_modules

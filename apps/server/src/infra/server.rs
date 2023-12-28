@@ -1,7 +1,9 @@
+use std::env::current_dir;
 use std::sync::Arc;
 
 use axum::routing;
 use axum::{routing::get, Router};
+use tower_http::services::ServeDir;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -36,16 +38,49 @@ pub fn create_server() -> Router {
 		)
 		.with_state(todo_repo);
 
-	let views_router = Router::new().route(
-		"/hello",
-		routing::get(controller::common_views_ctrl::render_hello_ctrl),
-	);
+	let assets_path = current_dir().unwrap().join("assets");
 
-	Router::new()
+	let views_router = Router::new()
+		.route(
+			"/hello",
+			routing::get(controller::common_views_ctrl::render_hello_ctrl),
+		)
+		.route(
+			"/",
+			routing::get(controller::todos_views_ctrl::render_index_ctrl),
+		)
+		.nest_service("/assets", ServeDir::new(assets_path));
+
+	let app = Router::new()
 		.route("/health", get(controller::common_ctrl::health))
 		.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
 		.merge(todo_router)
 		.merge(views_router)
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
-		.layer(super::tracing::add_tracing_layer())
+		.layer(super::tracing::add_tracing_layer());
+
+	#[cfg(debug_assertions)]
+	let app = {
+		use notify::Watcher;
+
+		let livereload = tower_livereload::LiveReloadLayer::new()
+			.request_predicate(|req: &axum::http::Request<axum::body::Body>| {
+				!req.headers().contains_key("hx-request")
+			})
+			.reload_interval(std::time::Duration::from_millis(500));
+		let reloader = livereload.reloader();
+		let mut watcher = notify::recommended_watcher(move |_| reloader.reload()).unwrap();
+
+		let assets_path = current_dir().unwrap().join("assets");
+		let templates_path = current_dir().unwrap().join("src/templates");
+
+		watcher.watch(&assets_path, notify::RecursiveMode::Recursive).unwrap();
+		watcher.watch(&templates_path, notify::RecursiveMode::Recursive).unwrap();
+
+		tracing::info!("Reloading!");
+
+		app.layer(livereload)
+	};
+
+	app
 }
