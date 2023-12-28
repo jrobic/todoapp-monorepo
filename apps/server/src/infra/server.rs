@@ -18,28 +18,34 @@ pub fn create_server() -> Router {
 
 	let todo_router = Router::new()
 		.route(
-			"/todos",
+			"/api/todos",
 			routing::get(controller::todo_ctrl::get_all_todos_ctrl)
 				.post(controller::todo_ctrl::create_todo_ctrl),
 		)
 		.route(
-			"/todos/:id",
+			"/api/todos/:id",
 			routing::delete(controller::todo_ctrl::delete_todo_ctrl),
 		)
 		.route(
-			"/todos/:id/mark_as_done",
+			"/api/todos/:id/mark_as_done",
 			routing::patch(controller::todo_ctrl::mark_as_done_todo_ctrl),
 		)
 		.route(
-			"/todos/:id/mark_as_undone",
+			"/api/todos/:id/mark_as_undone",
 			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
 		)
 		.with_state(todo_repo);
+
+	let views_router = Router::new().route(
+		"/hello",
+		routing::get(controller::common_views_ctrl::render_hello_ctrl),
+	);
 
 	Router::new()
 		.route("/health", get(controller::common_ctrl::health))
 		.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
 		.merge(todo_router)
+		.merge(views_router)
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.layer(super::tracing::add_tracing_layer())
 }

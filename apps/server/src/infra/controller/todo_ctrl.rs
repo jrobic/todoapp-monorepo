@@ -20,7 +20,7 @@ use crate::{
 #[utoipa::path(
 	tag = "Todo",
 	post,
-	path = "/todos",
+	path = "/api/todos",
 	request_body = CreateTodoParams,
 	responses(
 		(status = 201, description = "Todo item created successfully", body = ApiResponseTodo),
@@ -51,7 +51,7 @@ pub struct SearchTodosQuery {
 #[utoipa::path(
 	tag = "Todo",
 	get,
-	path = "/todos",
+	path = "/api/todos",
 	params(SearchTodosQuery),
 	responses(
 		(status = 200, description = "Todo items retrieved successfully", body = ApiResponseListTodos),
@@ -89,7 +89,7 @@ pub async fn get_all_todos_ctrl(
 #[utoipa::path(
 	tag = "Todo",
 	delete,
-	path = "/todos/{id}",
+	path = "/api/todos/{id}",
 	params(
 		("id" = Uuid, Path, description = "Todo item id"),
 	),
@@ -112,7 +112,7 @@ pub async fn delete_todo_ctrl(
 #[utoipa::path(
 	tag = "Todo",
 	patch,
-	path = "/todos/{id}/mark_as_done",
+	path = "/api/todos/{id}/mark_as_done",
 	params(
 		("id" = Uuid, Path, description = "Todo item id"),
 	),
@@ -136,7 +136,7 @@ pub async fn mark_as_done_todo_ctrl(
 #[utoipa::path(
 	tag = "Todo",
 	patch,
-	path = "/todos/{id}/mark_as_undone",
+	path = "/api/todos/{id}/mark_as_undone",
 	params(
 		("id" = Uuid, Path, description = "Todo item id"),
 	),
