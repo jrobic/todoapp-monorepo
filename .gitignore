@@ -33,3 +33,6 @@ coverage
 /target
 *.profraw
 
+# Grafana
+config/tempo-data
+config/loki-data
