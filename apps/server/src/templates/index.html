@@ -2,4 +2,16 @@
 
 {% block content %}
     <h1 class="text-green-400">Welcome</h1>
+
+    <p class="htmx-indicator">loading...</p>
+
+    <button
+        type="button"
+        class="btn btn-outline"
+        hx-get="/api/hello"
+        hx-swap="outerHTML"
+        hx-indicator=".htmx-indicator"
+    >
+        Say Hello
+    </button>
 {% endblock %}

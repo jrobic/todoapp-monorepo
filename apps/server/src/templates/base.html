@@ -5,10 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link href="/assets/main.css" rel="stylesheet" />
         <title>{% block title %}TodoApp (HTMX){% endblock %}</title>
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
         {% block head %}{% endblock %}
     </head>
     <body>
         <div id="content">{% block content %}{% endblock %}</div>
-        <button class="btn btn-primary">Test</button>
     </body>
 </html>

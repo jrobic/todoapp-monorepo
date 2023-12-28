@@ -36,6 +36,10 @@ pub fn create_server() -> Router {
 			"/api/todos/:id/mark_as_undone",
 			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
 		)
+		.route(
+			"/api/hello",
+			routing::get(controller::common_views_ctrl::say_hello),
+		)
 		.with_state(todo_repo);
 
 	let assets_path = current_dir().unwrap().join("assets");
