@@ -8,6 +8,12 @@ devDependencies:
   daisyui:
     specifier: ^4.4.24
     version: 4.4.24(postcss@8.4.32)
+  postcss:
+    specifier: ^8.4.32
+    version: 8.4.32
+  postcss-import:
+    specifier: ^15.1.0
+    version: 15.1.0(postcss@8.4.32)
   prettier:
     specifier: ^3.1.1
     version: 3.1.1

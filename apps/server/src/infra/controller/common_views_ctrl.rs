@@ -1,5 +1,6 @@
 use askama::Template;
 use axum::extract::Query;
+use random_word::Lang;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
@@ -21,9 +22,17 @@ pub async fn render_hello_ctrl(query: Query<HelloQuery>) -> Result<HelloTemplate
 	Ok(HelloTemplate { name })
 }
 
-pub async fn say_hello() -> &'static str {
-	// sleep for 2 seconds
-	tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+#[derive(Template)]
+#[template(path = "components/item.html")]
+pub struct ItemTemplate {
+	text: String,
+}
 
-	"Hello!"
+pub async fn say_hello() -> ItemTemplate {
+	// sleep for 2 seconds
+	// tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+	ItemTemplate {
+		text: random_word::gen(Lang::En).to_string(),
+	}
 }

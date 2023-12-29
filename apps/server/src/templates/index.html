@@ -3,15 +3,27 @@
 {% block content %}
     <h1 class="text-green-400">Welcome</h1>
 
+    <br />
+    <a href="/hello" class="link link-secondary">Hello</a>
+    <br />
+
     <p class="htmx-indicator">loading...</p>
 
     <button
         type="button"
         class="btn btn-outline"
         hx-get="/api/hello"
-        hx-swap="outerHTML"
+        hx-swap="afterbegin"
+        hx-target="#list"
         hx-indicator=".htmx-indicator"
     >
         Say Hello
     </button>
+
+    <div
+        id="list"
+        hx-get="/api/hello"
+        hx-swap="afterbegin"
+        hx-trigger="every 5s"
+    ></div>
 {% endblock %}
