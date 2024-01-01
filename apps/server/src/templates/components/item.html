@@ -1,1 +1,22 @@
-<div>{{ text }}</div>
+{% macro render(id, description, done) %}
+    <div
+        {% if done %}
+            class="text-pink-400"
+        {% else %}
+            class="text-blue-400 accent-current"
+        {% endif %}
+        data-done="{{ done }}"
+        data-id="{{ id }}"
+    >
+        <input
+            type="checkbox"
+            class="checkbox"
+            {% if done %}
+                checked
+            {% endif %}
+        />
+        <span> {{ description }} </span>
+
+        <button type="button" class="btn btn-circle btn-xs btn-ghost" />
+    </div>
+{% endmacro %}

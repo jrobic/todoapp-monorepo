@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
 use axum::async_trait;
+use random_word::Lang;
 use uuid::Uuid;
 
 use crate::domain::{
@@ -17,14 +18,21 @@ pub struct TodoInMemoryRepository {
 impl TodoInMemoryRepository {
 	pub fn new() -> Self {
 		Self {
-			todos: Mutex::new(vec![Todo {
-				id: Uuid::new_v4(),
-				description: "Buy milk and chocolate".to_string(),
-				done: false,
-				created_at: chrono::Utc::now(),
-				updated_at: chrono::Utc::now(),
-				done_at: None,
-			}]),
+			todos: Mutex::new(
+				(1..50)
+					.map(|n| Todo {
+						id: Uuid::new_v4(),
+						description: random_word::gen(Lang::En).to_string(),
+						done: n % 3 == 0,
+						created_at: chrono::Utc::now(),
+						updated_at: chrono::Utc::now(),
+						done_at: match n % 3 == 0 {
+							true => Some(chrono::Utc::now()),
+							false => None,
+						},
+					})
+					.collect(),
+			),
 		}
 	}
 }

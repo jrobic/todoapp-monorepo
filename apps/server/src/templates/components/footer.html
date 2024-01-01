@@ -1,0 +1,21 @@
+{% import "components/counter.html" as counter %}
+
+{% macro render(num_items) %}
+    <footer class="flex items-center p-4 justify-between">
+        {% call counter::render(num_items) %}
+
+        <ul class="flex gap-4">
+            <li>
+                <a href="#" class="link">All</a>
+            </li>
+            <li>
+                <a href="#" class="link">Active</a>
+            </li>
+            <li>
+                <a href="#" class="link">Completed</a>
+            </li>
+        </ul>
+
+        <button type="button">Clear completed</button>
+    </footer>
+{% endmacro %}

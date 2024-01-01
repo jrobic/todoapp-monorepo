@@ -69,14 +69,12 @@ pub async fn get_all_todos_ctrl(
 
 	match search_term {
 		Some(st) => {
-			dbg!("searching");
 			let search_todos_usecase = search_todos_usecase::SearchTodosUsecase::new(&todo_repo);
 			let todos = search_todos_usecase.exec(st).await?;
 
 			Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
 		},
 		None => {
-			dbg!("all");
 			let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
 
 			let todos = get_all_todos_usecase.exec().await?;

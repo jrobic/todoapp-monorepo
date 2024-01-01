@@ -35,12 +35,7 @@ pub fn create_server() -> Router {
 		.route(
 			"/api/todos/:id/mark_as_undone",
 			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
-		)
-		.route(
-			"/api/hello",
-			routing::get(controller::common_views_ctrl::say_hello),
-		)
-		.with_state(todo_repo);
+		);
 
 	let assets_path = current_dir().unwrap().join("assets");
 
@@ -53,6 +48,10 @@ pub fn create_server() -> Router {
 			"/",
 			routing::get(controller::todos_views_ctrl::render_index_ctrl),
 		)
+		.route(
+			"/create_todo",
+			routing::post(controller::todos_views_ctrl::create_todo_ctrl),
+		)
 		.nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()
@@ -60,6 +59,7 @@ pub fn create_server() -> Router {
 		.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
 		.merge(todo_router)
 		.merge(views_router)
+		.with_state(todo_repo)
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.layer(super::tracing::add_tracing_layer());
 

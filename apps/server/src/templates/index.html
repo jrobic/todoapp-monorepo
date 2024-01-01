@@ -1,29 +1,53 @@
+{% import "components/item.html" as todo_item %}
+{% import "components/footer.html" as footer %}
 {% extends "base.html" %}
 
+{% block header %}
+    <header class="px-4 py-8">
+        <h1>
+            <span
+                class="text-transparent font-extrabold text-5xl bg-gradient-to-r bg-clip-text from-pink-500 to-blue-500"
+            >
+                Todo App
+            </span>
+        </h1>
+
+        <form
+            class="pt-8"
+            id="new-todo"
+            hx-post="/create_todo"
+            hx-target="#list-todos"
+            hx-swap="afterbegin"
+            hx-on="htmx:afterRequest: document.getElementById('new-todo').reset();"
+        >
+            <input
+                type="text"
+                name="description"
+                placeholder="What needs to be done?"
+                class="input input-bordered w-full"
+                autofocus
+                required
+                minlength="3"
+            />
+        </form>
+    </header>
+{% endblock %}
+
 {% block content %}
-    <h1 class="text-green-400">Welcome</h1>
+    <main class="px-4">
+        <ul id="list-todos" class="">
+            {% for item in items %}
+                <li>
+                    {% call todo_item::render(item.id, item.description, item.done) %}
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+{% endblock %}
 
-    <br />
-    <a href="/hello" class="link link-secondary">Hello</a>
-    <br />
-
-    <p class="htmx-indicator">loading...</p>
-
-    <button
-        type="button"
-        class="btn btn-outline"
-        hx-get="/api/hello"
-        hx-swap="afterbegin"
-        hx-target="#list"
-        hx-indicator=".htmx-indicator"
-    >
-        Say Hello
-    </button>
-
-    <div
-        id="list"
-        hx-get="/api/hello"
-        hx-swap="afterbegin"
-        hx-trigger="every 5s"
-    ></div>
+{% block footer %}
+    {% call footer::render(num_items) %}
+    <div class="text-sm text-gray-400 text-center">
+        <span>Made with love with Rust 🦀 and HTMX</span>
+    </div>
 {% endblock %}

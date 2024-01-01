@@ -9,7 +9,13 @@
 
         {% block head %}{% endblock %}
     </head>
-    <body>
-        <div id="content">{% block content %}{% endblock %}</div>
+    <body class="flex justify-center">
+        <div class="grid grid-rows-layout h-screen max-w-screen-md flex-1">
+            <div class="">{% block header %}{% endblock %}</div>
+
+            <div class="overflow-auto">{% block content %}{% endblock %}</div>
+
+            <div class="">{% block footer %}{% endblock %}</div>
+        </div>
     </body>
 </html>

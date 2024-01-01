@@ -1,0 +1,4 @@
+{% import "components/item.html" as todo_item %}
+{% import "components/counter.html" as counter %}
+{% call todo_item::render(todo.id, todo.description, todo.done) %}
+{% call counter::render(num_items) %}
