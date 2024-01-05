@@ -1,12 +1,18 @@
 use askama::Template;
-use axum::{extract::State, Form};
+use askama_axum::IntoResponse;
+use axum::{
+	extract::{Path, State},
+	http::StatusCode,
+	Form,
+};
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::{
-	domain::{entity::todo::Todo, repository::todo_repository::DynTodoRepository},
+	domain::{entity::todo::TodoView, repository::todo_repository::DynTodoRepository},
 	usecase::{
 		create_todo_usecase::{self, CreateTodoParams},
-		get_all_todos_usecase,
+		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
 	},
 };
 
@@ -14,7 +20,7 @@ use crate::{
 #[template(path = "index.html")]
 pub struct IndexTemplate {
 	pub num_items: i32,
-	pub items: Vec<Todo>,
+	pub todos: Vec<TodoView>,
 }
 
 pub async fn render_index_ctrl(
@@ -29,7 +35,7 @@ pub async fn render_index_ctrl(
 
 	Ok(IndexTemplate {
 		num_items: todos.clone().len() as i32,
-		items: todos,
+		todos: todos.into_iter().map(|todo| todo.into()).collect(),
 	})
 }
 
@@ -37,7 +43,7 @@ pub async fn render_index_ctrl(
 #[template(path = "responses/create_todo.html")]
 pub struct CreateTodoResponseTemplate {
 	pub num_items: i32,
-	pub todo: Todo,
+	pub todo: TodoView,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,10 +59,64 @@ pub async fn create_todo_ctrl(
 		create_todo_usecase::CreateTodoUsecase::new(&todo_repo);
 
 	let todo = usecase.exec(CreateTodoParams { description }).await.unwrap();
+
 	let todo_len = todo_repo.find_many_todos(None).await.unwrap().len() as i32;
 
 	CreateTodoResponseTemplate {
-		todo,
+		todo: todo.into(),
+		num_items: todo_len,
+	}
+}
+
+#[derive(Template)]
+#[template(path = "responses/update_todo.html")]
+pub struct UpdateTodoTmpl {
+	pub todo: TodoView,
+}
+
+pub async fn mark_as_done_todo_ctrl(
+	State(_todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> UpdateTodoTmpl {
+	let mark_as_done_usecase: mark_as_done_todo_usecase::MarkAsDoneTodoUsecase<'_> =
+		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+
+	let todo = mark_as_done_usecase.exec(id, true).await.unwrap();
+
+	let todo_view: TodoView = todo.into();
+
+	UpdateTodoTmpl { todo: todo_view }
+}
+
+pub async fn mark_as_undone_todo_ctrl(
+	State(_todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> UpdateTodoTmpl {
+	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+
+	let todo = mark_as_done_usecase.exec(id, false).await.unwrap();
+
+	let todo_view: TodoView = todo.into();
+
+	UpdateTodoTmpl { todo: todo_view }
+}
+
+#[derive(Template)]
+#[template(path = "responses/remove_todo.html")]
+pub struct RemoveTodoTmpl {
+	pub num_items: i32,
+}
+
+pub async fn delete_todo_ctrl(
+	State(todo_repo): State<DynTodoRepository>,
+	Path(id): Path<Uuid>,
+) -> RemoveTodoTmpl {
+	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&todo_repo);
+
+	delete_todo_usecase.exec(id).await.unwrap();
+	let todo_len = todo_repo.find_many_todos(None).await.unwrap().len() as i32;
+
+	RemoveTodoTmpl {
 		num_items: todo_len,
 	}
 }

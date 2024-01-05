@@ -1,6 +1,6 @@
 {% import "components/item.html" as todo_item %}
 {% import "components/footer.html" as footer %}
-{% extends "base.html" %}
+{% extends "layout/base.html" %}
 
 {% block header %}
     <header class="px-4 py-8">
@@ -36,9 +36,9 @@
 {% block content %}
     <main class="px-4">
         <ul id="list-todos" class="">
-            {% for item in items %}
+            {% for todo in todos %}
                 <li>
-                    {% call todo_item::render(item.id, item.description, item.done) %}
+                    {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at) %}
                 </li>
             {% endfor %}
         </ul>

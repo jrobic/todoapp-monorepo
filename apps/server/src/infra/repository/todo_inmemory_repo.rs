@@ -19,7 +19,7 @@ impl TodoInMemoryRepository {
 	pub fn new() -> Self {
 		Self {
 			todos: Mutex::new(
-				(1..50)
+				(1..500)
 					.map(|n| Todo {
 						id: Uuid::new_v4(),
 						description: random_word::gen(Lang::En).to_string(),

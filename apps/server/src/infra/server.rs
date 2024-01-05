@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use axum::routing;
 use axum::{routing::get, Router};
+
 use tower_http::services::ServeDir;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -52,6 +53,18 @@ pub fn create_server() -> Router {
 			"/create_todo",
 			routing::post(controller::todos_views_ctrl::create_todo_ctrl),
 		)
+		.route(
+			"/mark_as_done/:id",
+			routing::post(controller::todos_views_ctrl::mark_as_done_todo_ctrl),
+		)
+		.route(
+			"/mark_as_undone/:id",
+			routing::post(controller::todos_views_ctrl::mark_as_undone_todo_ctrl),
+		)
+		.route(
+			"/remove_todo/:id",
+			routing::post(controller::todos_views_ctrl::delete_todo_ctrl),
+		)
 		.nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()
@@ -62,6 +75,20 @@ pub fn create_server() -> Router {
 		.with_state(todo_repo)
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.layer(super::tracing::add_tracing_layer());
+
+	#[cfg(not(debug_assertions))]
+	let app = {
+		use tower_http::compression::CompressionLayer;
+
+		let compression_layer = CompressionLayer::new()
+			.br(true)
+			.deflate(true)
+			.gzip(true)
+			.zstd(true)
+			.compress_when(|_, _, _: &_, _: &_| true);
+
+		app.layer(compression_layer)
+	};
 
 	#[cfg(debug_assertions)]
 	let app = {

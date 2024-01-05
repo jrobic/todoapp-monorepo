@@ -19,7 +19,11 @@ serde_json = "1.0.108"
 serde_with = "3.4.0"
 thiserror = "1.0.51"
 tokio = { version = "1.35.1", features = ["full"] }
-tower-http = { version = "0.5.0", features = ["trace", "fs"] }
+tower-http = { version = "0.5.0", features = [
+	"trace",
+	"fs",
+	"compression-full",
+] }
 tower-livereload = "0.9.1"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
