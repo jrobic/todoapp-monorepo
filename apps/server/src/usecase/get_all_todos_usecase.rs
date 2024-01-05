@@ -15,8 +15,8 @@ impl<'a> GetAllTodosUsecase<'a> {
 		Self { todo_repo }
 	}
 
-	pub async fn exec(&self) -> Result<Vec<Todo>, TodoException> {
-		match self.todo_repo.find_many_todos(None).await {
+	pub async fn exec(&self, status: Option<String>) -> Result<Vec<Todo>, TodoException> {
+		match self.todo_repo.find_many_todos(status).await {
 			Ok(todos) => Ok(todos),
 			Err(_) => Err(TodoException::Unknown),
 		}

@@ -15,6 +15,19 @@ pub struct Todo {
 	pub done_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+impl Todo {
+	pub fn new(description: String) -> Self {
+		Self {
+			id: Uuid::new_v4(),
+			description,
+			done: false,
+			created_at: chrono::Utc::now(),
+			updated_at: chrono::Utc::now(),
+			done_at: None,
+		}
+	}
+}
+
 #[derive(Template, Debug, Clone)]
 #[template(path = "components/item.html")]
 pub struct TodoView {
@@ -24,6 +37,7 @@ pub struct TodoView {
 	pub created_at: String,
 	pub updated_at: String,
 	pub done_at: String,
+	pub need_removed_in_view: bool,
 }
 
 impl From<Todo> for TodoView {
@@ -38,19 +52,19 @@ impl From<Todo> for TodoView {
 				.done_at
 				.map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string())
 				.unwrap_or_default(),
+			need_removed_in_view: false,
 		}
 	}
 }
 
-impl Todo {
-	pub fn new(description: String) -> Self {
-		Self {
-			id: Uuid::new_v4(),
-			description,
-			done: false,
-			created_at: chrono::Utc::now(),
-			updated_at: chrono::Utc::now(),
-			done_at: None,
-		}
+impl TodoView {
+	pub fn set_to_be_removed_in_view(&mut self, status: String) -> &Self {
+		self.need_removed_in_view = match status.as_str() {
+			"done" if !self.done => true,
+			"pending" if self.done => true,
+			_ => false,
+		};
+
+		self
 	}
 }

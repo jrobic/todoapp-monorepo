@@ -13,7 +13,6 @@ use crate::{
 	usecase::{
 		create_todo_usecase::{self, CreateTodoParams},
 		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
-		search_todos_usecase,
 	},
 };
 
@@ -44,15 +43,15 @@ pub async fn create_todo_ctrl(
 
 #[derive(Deserialize, IntoParams, Clone, Debug)]
 #[into_params(parameter_in = Query)]
-pub struct SearchTodosQuery {
-	pub search_term: Option<String>,
+pub struct GetAllTodosQuery {
+	pub status: Option<String>,
 }
 
 #[utoipa::path(
 	tag = "Todo",
 	get,
 	path = "/api/todos",
-	params(SearchTodosQuery),
+	params(GetAllTodosQuery),
 	responses(
 		(status = 200, description = "Todo items retrieved successfully", body = ApiResponseListTodos),
 		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
@@ -61,27 +60,13 @@ pub struct SearchTodosQuery {
 
 pub async fn get_all_todos_ctrl(
 	State(todo_repo): State<DynTodoRepository>,
-	query: Query<SearchTodosQuery>,
+	query: Query<GetAllTodosQuery>,
 ) -> ApiResponse<Vec<Todo>> {
-	dbg!(query.clone());
+	let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
 
-	let search_term = query.search_term.clone();
+	let todos = get_all_todos_usecase.exec(query.status.to_owned()).await?;
 
-	match search_term {
-		Some(st) => {
-			let search_todos_usecase = search_todos_usecase::SearchTodosUsecase::new(&todo_repo);
-			let todos = search_todos_usecase.exec(st).await?;
-
-			Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
-		},
-		None => {
-			let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
-
-			let todos = get_all_todos_usecase.exec().await?;
-
-			Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
-		},
-	}
+	Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
 }
 
 #[utoipa::path(

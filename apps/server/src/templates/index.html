@@ -38,7 +38,7 @@
         <ul id="list-todos" class="">
             {% for todo in todos %}
                 <li>
-                    {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at) %}
+                    {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at, todo.need_removed_in_view) %}
                 </li>
             {% endfor %}
         </ul>

@@ -55,15 +55,17 @@ impl TodoRepository for TodoInMemoryRepository {
 
 	async fn find_many_todos(
 		&self,
-		search_term: Option<String>,
+		status: Option<String>,
 	) -> Result<Vec<Todo>, FindManyTodoError> {
 		let todos = self.todos.lock().unwrap();
 
-		if let Some(search_term) = search_term {
+		if let Some(status) = status {
 			let todos = todos
 				.iter()
-				.filter(|todo| {
-					todo.description.to_lowercase().contains(&search_term.to_lowercase())
+				.filter(|todo| match status {
+					ref s if s == "done" => todo.done,
+					ref s if s == "pending" => !todo.done,
+					_ => true,
 				})
 				.cloned()
 				.collect::<Vec<Todo>>();
@@ -98,6 +100,14 @@ impl TodoRepository for TodoInMemoryRepository {
 			.ok_or(DeleteError::NotFound)?;
 
 		todos.remove(index);
+
+		Ok(())
+	}
+
+	async fn delete_done_todos(&self) -> Result<(), DeleteError> {
+		let mut todos = self.todos.lock().unwrap();
+
+		todos.retain(|todo| !todo.done);
 
 		Ok(())
 	}

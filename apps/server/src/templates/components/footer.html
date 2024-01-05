@@ -1,21 +1,39 @@
 {% import "components/counter.html" as counter %}
 
 {% macro render(num_items) %}
-    <footer class="flex items-center p-4 justify-between">
+    <footer
+        class="flex items-center p-4 justify-between"
+        hx-target="#list-todos"
+        hx-push-url="true"
+        hx-select-oob="true"
+        hx-select="#list-todos"
+    >
         {% call counter::render(num_items) %}
 
         <ul class="flex gap-4">
             <li>
-                <a href="#" class="link">All</a>
+                <a class="link hover:text-blue-400" hx-get="/">All</a>
             </li>
             <li>
-                <a href="#" class="link">Active</a>
+                <a class="link hover:text-blue-400" hx-get="/?status=pending"
+                    >Active</a
+                >
             </li>
             <li>
-                <a href="#" class="link">Completed</a>
+                <a class="link hover:text-blue-400" hx-get="/?status=done"
+                    >Completed</a
+                >
             </li>
         </ul>
 
-        <button type="button">Clear completed</button>
+        <button
+            type="button"
+            class="btn btn-ghost"
+            hx-confirm="Are you sure to remove all completed todos?"
+            hx-disabled-elt="this"
+            hx-post="/clear_all_completed_todos"
+        >
+            Clear completed
+        </button>
     </footer>
 {% endmacro %}

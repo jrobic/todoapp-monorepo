@@ -1,3 +1,7 @@
 .htmx-indicator {
     opacity: 0;
 }
+
+[data-loading] {
+    display: none;
+}

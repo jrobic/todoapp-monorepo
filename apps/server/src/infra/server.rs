@@ -63,7 +63,11 @@ pub fn create_server() -> Router {
 		)
 		.route(
 			"/remove_todo/:id",
-			routing::post(controller::todos_views_ctrl::delete_todo_ctrl),
+			routing::delete(controller::todos_views_ctrl::delete_todo_ctrl),
+		)
+		.route(
+			"/clear_all_completed_todos",
+			routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
 		)
 		.nest_service("/assets", ServeDir::new(assets_path));
 

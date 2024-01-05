@@ -1,16 +1,20 @@
+use std::collections::HashMap;
+
 use askama::Template;
-use askama_axum::IntoResponse;
 use axum::{
-	extract::{Path, State},
-	http::StatusCode,
+	extract::{Path, Query, State},
+	http::HeaderMap,
 	Form,
 };
 use serde::Deserialize;
+use url::Url;
+use utoipa::IntoParams;
 use uuid::Uuid;
 
 use crate::{
 	domain::{entity::todo::TodoView, repository::todo_repository::DynTodoRepository},
 	usecase::{
+		clear_all_completed_todos_usecase,
 		create_todo_usecase::{self, CreateTodoParams},
 		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
 	},
@@ -23,18 +27,27 @@ pub struct IndexTemplate {
 	pub todos: Vec<TodoView>,
 }
 
+#[derive(Deserialize, IntoParams, Clone, Debug)]
+#[into_params(parameter_in = Query)]
+pub struct SearchTodosQuery {
+	pub status: Option<String>,
+}
+
 pub async fn render_index_ctrl(
 	State(todo_repo): State<DynTodoRepository>,
+	Query(query): Query<SearchTodosQuery>,
 ) -> Result<IndexTemplate, ()> {
 	let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
 
-	let todos = match get_all_todos_usecase.exec().await {
+	let todos = match get_all_todos_usecase.exec(query.status.clone()).await {
 		Ok(todos) => todos,
 		Err(_) => return Err(()),
 	};
 
+	let todo_len = todo_repo.find_many_todos(query.status.clone()).await.unwrap().len() as i32;
+
 	Ok(IndexTemplate {
-		num_items: todos.clone().len() as i32,
+		num_items: todo_len,
 		todos: todos.into_iter().map(|todo| todo.into()).collect(),
 	})
 }
@@ -72,33 +85,58 @@ pub async fn create_todo_ctrl(
 #[template(path = "responses/update_todo.html")]
 pub struct UpdateTodoTmpl {
 	pub todo: TodoView,
+	pub num_items: i32,
 }
 
 pub async fn mark_as_done_todo_ctrl(
-	State(_todo_repo): State<DynTodoRepository>,
+	State(todo_repo): State<DynTodoRepository>,
 	Path(id): Path<Uuid>,
+	headers: HeaderMap,
 ) -> UpdateTodoTmpl {
 	let mark_as_done_usecase: mark_as_done_todo_usecase::MarkAsDoneTodoUsecase<'_> =
-		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, true).await.unwrap();
 
-	let todo_view: TodoView = todo.into();
+	let mut todo_view: TodoView = todo.into();
 
-	UpdateTodoTmpl { todo: todo_view }
+	let status = extract_status_from_header(headers);
+
+	if let Some(status) = status.clone() {
+		todo_view.set_to_be_removed_in_view(status);
+	}
+
+	let todo_len = todo_repo.find_many_todos(status).await.unwrap().len() as i32;
+
+	UpdateTodoTmpl {
+		todo: todo_view,
+		num_items: todo_len,
+	}
 }
 
 pub async fn mark_as_undone_todo_ctrl(
-	State(_todo_repo): State<DynTodoRepository>,
+	State(todo_repo): State<DynTodoRepository>,
 	Path(id): Path<Uuid>,
+	headers: HeaderMap,
 ) -> UpdateTodoTmpl {
-	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, false).await.unwrap();
 
-	let todo_view: TodoView = todo.into();
+	let mut todo_view: TodoView = todo.into();
 
-	UpdateTodoTmpl { todo: todo_view }
+	let status = extract_status_from_header(headers);
+
+	if let Some(status) = status.clone() {
+		todo_view.set_to_be_removed_in_view(status);
+	}
+
+	let todo_len = todo_repo.find_many_todos(status).await.unwrap().len() as i32;
+
+	UpdateTodoTmpl {
+		todo: todo_view,
+		num_items: todo_len,
+	}
 }
 
 #[derive(Template)]
@@ -119,4 +157,35 @@ pub async fn delete_todo_ctrl(
 	RemoveTodoTmpl {
 		num_items: todo_len,
 	}
+}
+
+pub async fn clear_all_completed_todos_ctrl(
+	State(todo_repo): State<DynTodoRepository>,
+	headers: HeaderMap,
+) -> IndexTemplate {
+	let clear_all_completed_todos_usecase =
+		clear_all_completed_todos_usecase::ClearAllCompletedTodosUsecase::new(&todo_repo);
+
+	clear_all_completed_todos_usecase.exec().await.unwrap();
+
+	let status = extract_status_from_header(headers);
+
+	let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
+
+	let todos = get_all_todos_usecase.exec(status).await.unwrap();
+
+	let todo_len = todo_repo.find_many_todos(None).await.unwrap().len() as i32;
+
+	IndexTemplate {
+		num_items: todo_len,
+		todos: todos.into_iter().map(|todo| todo.into()).collect(),
+	}
+}
+
+fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
+	let current_url = headers.get("hx-current-url").unwrap().to_str().unwrap();
+	let hash_query: HashMap<_, _> =
+		Url::parse(current_url).unwrap().query_pairs().into_owned().collect();
+
+	hash_query.get("status").map(|status| status.to_string())
 }

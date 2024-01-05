@@ -1,5 +1,9 @@
-{% macro render(id, description, done, created_at, done_at) %}
+{% macro render(id, description, done, created_at, done_at, need_removed_in_view) %}
     <div
+        hx-ext="remove-me"
+        {% if need_removed_in_view %}
+            remove-me="200ms"
+        {% endif %}
         data-done="{{ todo.done }}"
         data-id="{{ todo.id }}"
         class="flex gap-4 py-1 hover:bg-slate-100 cursor-pointer text-lg"
@@ -34,6 +38,7 @@
                 hx-trigger="click"
                 hx-swap="outerHTML"
                 hx-target="[data-id='{{ todo.id }}']"
+                hx-disabled-elt="this"
             >
                 {% if todo.done %}
                     ✘
@@ -44,11 +49,12 @@
             <button
                 type="button"
                 class="btn btn-circle btn-sm btn-ghost hover:bg-red-400"
-                hx-post="/remove_todo/{{ todo.id }}"
+                hx-delete="/remove_todo/{{ todo.id }}"
                 hx-trigger="click"
                 hx-swap="delete"
                 hx-target="[data-id='{{ todo.id }}']"
                 hx-confirm="Are you sure you want to delete this todo?"
+                hx-disabled-elt="this"
             >
                 🗑
             </button>
