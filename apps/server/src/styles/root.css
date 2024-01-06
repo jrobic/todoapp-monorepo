@@ -5,3 +5,7 @@
 [data-loading] {
     display: none;
 }
+
+.active {
+    @apply text-blue-400;
+}

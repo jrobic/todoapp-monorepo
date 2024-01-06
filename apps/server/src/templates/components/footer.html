@@ -15,12 +15,18 @@
                 <a class="link hover:text-blue-400" hx-get="/">All</a>
             </li>
             <li>
-                <a class="link hover:text-blue-400" hx-get="/?status=pending"
+                <a
+                    class="link hover:text-blue-400"
+                    data-status="pending"
+                    hx-get="/?status=pending"
                     >Active</a
                 >
             </li>
             <li>
-                <a class="link hover:text-blue-400" hx-get="/?status=done"
+                <a
+                    class="link hover:text-blue-400"
+                    data-status="done"
+                    hx-get="/?status=done"
                     >Completed</a
                 >
             </li>
@@ -36,4 +42,34 @@
             Clear completed
         </button>
     </footer>
+
+    <script>
+        function setCurrentNavLinks() {
+            const navlinks = document.querySelectorAll("footer > ul > li > a");
+
+            navlinks.forEach((link) => {
+                const current = window.location.search;
+
+                const target = link.getAttribute("hx-get").replace(/^\//, "");
+
+                if (current === target) {
+                    link.classList.add("active");
+                    return;
+                }
+
+                link.classList.remove("active");
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            setCurrentNavLinks();
+
+            document
+                .querySelector("footer")
+                .addEventListener("htmx:afterSettle", function (event) {
+                    console.log("afterswap");
+                    setCurrentNavLinks();
+                });
+        });
+    </script>
 {% endmacro %}
