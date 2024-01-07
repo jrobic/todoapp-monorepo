@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Template)]
-#[template(path = "index.html")]
+#[template(path = "views/index.html")]
 pub struct IndexTemplate {
 	pub num_items: i32,
 	pub todos: Vec<TodoView>,

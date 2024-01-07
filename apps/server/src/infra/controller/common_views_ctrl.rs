@@ -4,7 +4,7 @@ use serde::Deserialize;
 use utoipa::IntoParams;
 
 #[derive(Template)]
-#[template(path = "hello.html")]
+#[template(path = "views/hello.html")]
 pub struct HelloTemplate {
 	pub name: String,
 }
