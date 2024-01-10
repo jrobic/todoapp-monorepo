@@ -68,7 +68,7 @@ pub async fn get_all_todos_ctrl(
 	let get_all_todos_usecase =
 		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
 
-	let todos = get_all_todos_usecase.exec(query.status.to_owned()).await?;
+	let todos = get_all_todos_usecase.exec(query.status.as_ref()).await?;
 
 	Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
 }

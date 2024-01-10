@@ -104,8 +104,6 @@ pub fn create_server() -> Router {
 			"/todos_sse",
 			get(controller::todos_views_ctrl::todos_stream),
 		)
-		.route("/test_sse", get(controller::todos_views_ctrl::test_sse))
-		.route("/stream", get(controller::todos_views_ctrl::stream))
 		.nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()

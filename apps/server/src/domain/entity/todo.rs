@@ -28,6 +28,20 @@ impl Todo {
 	}
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub enum TodoOperation {
+	Create,
+	Read,
+	Update,
+	Delete,
+}
+
+impl Default for TodoOperation {
+	fn default() -> Self {
+		Self::Read
+	}
+}
+
 #[derive(Template, Debug, Clone, Serialize)]
 #[template(path = "components/item.html")]
 pub struct TodoView {
@@ -37,8 +51,13 @@ pub struct TodoView {
 	pub created_at: String,
 	pub updated_at: String,
 	pub done_at: String,
-	pub need_removed_in_view: bool,
-	pub need_to_update: bool,
+	pub view_opts: TodoViewOpts,
+}
+
+#[derive(Serialize, Debug, Clone, Default)]
+pub struct TodoViewOpts {
+	pub need_oob: bool,
+	pub need_remove: bool,
 }
 
 impl From<Todo> for TodoView {
@@ -53,26 +72,25 @@ impl From<Todo> for TodoView {
 				.done_at
 				.map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string())
 				.unwrap_or_default(),
-			need_removed_in_view: false,
-			need_to_update: false,
+			view_opts: TodoViewOpts::default(),
 		}
 	}
 }
 
 impl TodoView {
-	pub fn set_to_be_removed_in_view(&mut self, status: String) -> &Self {
-		self.need_removed_in_view = match status.as_str() {
-			"done" if !self.done => true,
-			"pending" if self.done => true,
-			"removed" => true,
+	pub fn set_view_opts(&mut self, operation: TodoOperation, status: Option<String>) -> &Self {
+		self.view_opts.need_oob = !matches!(operation, TodoOperation::Read | TodoOperation::Create);
+
+		if matches!(operation, TodoOperation::Delete) {
+			self.view_opts.need_remove = true;
+			return self;
+		}
+
+		self.view_opts.need_remove = match status {
+			Some(status) if status == "done" && !self.done => true,
+			Some(status) if status == "pending" && self.done => true,
 			_ => false,
 		};
-
-		self
-	}
-
-	pub fn set_to_be_update(&mut self) -> &Self {
-		self.need_to_update = true;
 
 		self
 	}

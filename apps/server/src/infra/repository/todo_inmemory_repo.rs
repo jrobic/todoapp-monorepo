@@ -65,7 +65,7 @@ impl TodoRepository for TodoInMemoryRepository {
 
 	async fn find_many_todos(
 		&self,
-		status: Option<String>,
+		status: Option<&String>,
 	) -> Result<Vec<Todo>, FindManyTodoError> {
 		let mut todos = self.todos.lock().unwrap().clone();
 
@@ -73,8 +73,8 @@ impl TodoRepository for TodoInMemoryRepository {
 			todos = todos
 				.iter()
 				.filter(|todo| match status {
-					ref s if s == "done" => todo.done,
-					ref s if s == "pending" => !todo.done,
+					s if s == "done" => todo.done,
+					s if s == "pending" => !todo.done,
 					_ => true,
 				})
 				.cloned()

@@ -1,13 +1,13 @@
-{% macro render(id, description, done, created_at, done_at, need_removed_in_view, need_to_update) %}
+{% macro render(id, description, done, created_at, done_at, view_opts) %}
     <div
         id="{{ todo.description }}"
         hx-target="#{{ todo.description }}"
         class="flex gap-4 py-1 cursor-pointer text-lg dark:hover:bg-slate-600 hover:bg-slate-100"
         hx-swap="outerHTML"
-        {% if need_to_update %}
+        {% if view_opts.need_oob %}
             hx-swap-oob="true"
         {% endif %}
-        {% if need_removed_in_view %}
+        {% if view_opts.need_remove %}
             hx-ext="remove-me" remove-me="200ms"
         {% endif %}
     >
