@@ -28,7 +28,7 @@ impl Todo {
 	}
 }
 
-#[derive(Template, Debug, Clone)]
+#[derive(Template, Debug, Clone, Serialize)]
 #[template(path = "components/item.html")]
 pub struct TodoView {
 	pub id: String,
@@ -38,6 +38,7 @@ pub struct TodoView {
 	pub updated_at: String,
 	pub done_at: String,
 	pub need_removed_in_view: bool,
+	pub need_to_update: bool,
 }
 
 impl From<Todo> for TodoView {
@@ -53,6 +54,7 @@ impl From<Todo> for TodoView {
 				.map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string())
 				.unwrap_or_default(),
 			need_removed_in_view: false,
+			need_to_update: false,
 		}
 	}
 }
@@ -62,8 +64,15 @@ impl TodoView {
 		self.need_removed_in_view = match status.as_str() {
 			"done" if !self.done => true,
 			"pending" if self.done => true,
+			"removed" => true,
 			_ => false,
 		};
+
+		self
+	}
+
+	pub fn set_to_be_update(&mut self) -> &Self {
+		self.need_to_update = true;
 
 		self
 	}

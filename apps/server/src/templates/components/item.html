@@ -1,12 +1,15 @@
-{% macro render(id, description, done, created_at, done_at, need_removed_in_view) %}
+{% macro render(id, description, done, created_at, done_at, need_removed_in_view, need_to_update) %}
     <div
-        hx-ext="remove-me"
-        {% if need_removed_in_view %}
-            remove-me="200ms"
+        id="{{ todo.description }}"
+        hx-target="#{{ todo.description }}"
+        class="flex gap-4 py-1 cursor-pointer text-lg dark:hover:bg-slate-600 hover:bg-slate-100"
+        hx-swap="outerHTML"
+        {% if need_to_update %}
+            hx-swap-oob="true"
         {% endif %}
-        data-done="{{ todo.done }}"
-        data-id="{{ todo.id }}"
-        class="flex gap-4 py-1 hover:bg-slate-100 cursor-pointer text-lg"
+        {% if need_removed_in_view %}
+            hx-ext="remove-me" remove-me="200ms"
+        {% endif %}
     >
         <div class="flex items-center gap-2 flex-1">
             <span
@@ -36,9 +39,8 @@
                     hx-post="/mark_as_done/{{ todo.id }}"
                 {% endif %}
                 hx-trigger="click"
-                hx-swap="outerHTML"
-                hx-target="[data-id='{{ todo.id }}']"
-                hx-disabled-elt="this"
+                hx-swap="none"
+                hx-target="#{{ todo.description }}"
             >
                 {% if todo.done %}
                     ✘
@@ -51,8 +53,8 @@
                 class="btn btn-circle btn-sm btn-ghost hover:bg-red-400"
                 hx-delete="/remove_todo/{{ todo.id }}"
                 hx-trigger="click"
-                hx-swap="delete"
-                hx-target="[data-id='{{ todo.id }}']"
+                hx-swap="none"
+                hx-target="#{{ todo.description }}"
                 hx-confirm="Are you sure you want to delete this todo?"
                 hx-disabled-elt="this"
             >

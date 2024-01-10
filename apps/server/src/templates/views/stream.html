@@ -1,6 +1,7 @@
-{% import "components/item.html" as todo_item %}
-{% import "components/footer.html" as footer %}
 {% extends "layout/base.html" %}
+{% import "components/footer.html" as footer %}
+
+{% block title %}Todos Stream{% endblock %}
 
 {% block header %}
     <header class="px-4 py-8">
@@ -17,7 +18,7 @@
             id="new-todo"
             hx-post="/create_todo"
             hx-target="#list-todos"
-            hx-swap="afterbegin"
+            hx-swap="none"
             hx-on="htmx:afterRequest: document.getElementById('new-todo').reset();"
         >
             <input
@@ -34,19 +35,23 @@
 {% endblock %}
 
 {% block content %}
-    <main class="px-4">
-        <ul id="list-todos" class="">
-            {% for todo in todos %}
-                <li>
-                    {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at, todo.need_removed_in_view, todo.need_to_update) %}
-                </li>
-            {% endfor %}
-        </ul>
+    <main class="px-4" hx-ext="sse" sse-connect="/todos_sse">
+        <div
+            hx-get="/list_todos"
+            hx-trigger="load, click"
+            hx-target="#list-todos"
+            id="trigger_list_todos"
+        ></div>
+        <ul
+            id="list-todos"
+            sse-swap="update_todo_view"
+            hx-swap="afterbegin"
+        ></ul>
     </main>
 {% endblock %}
 
 {% block footer %}
-    {% call footer::render(num_items) %}
+    {% call footer::render(0) %}
     <div class="text-sm text-gray-400 text-center">
         <span>Made with love with Rust 🦀 and HTMX</span>
     </div>

@@ -1,6 +1,8 @@
-use std::sync::Mutex;
+use std::{cmp::Reverse, sync::Mutex};
 
 use axum::async_trait;
+use chrono::{Duration, NaiveDate};
+use rand::Rng;
 use random_word::Lang;
 use uuid::Uuid;
 
@@ -19,17 +21,25 @@ impl TodoInMemoryRepository {
 	pub fn new() -> Self {
 		Self {
 			todos: Mutex::new(
-				(1..50)
-					.map(|n| Todo {
-						id: Uuid::new_v4(),
-						description: random_word::gen(Lang::En).to_string(),
-						done: n % 3 == 0,
-						created_at: chrono::Utc::now(),
-						updated_at: chrono::Utc::now(),
-						done_at: match n % 3 == 0 {
-							true => Some(chrono::Utc::now()),
-							false => None,
-						},
+				(1..500)
+					.map(|n| {
+						let created_date = random_date_in_range(
+							&mut rand::thread_rng(),
+							NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+							NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+						);
+
+						Todo {
+							id: Uuid::new_v4(),
+							description: random_word::gen(Lang::En).to_string(),
+							done: n % 3 == 0,
+							created_at: created_date,
+							updated_at: created_date,
+							done_at: match n % 3 == 0 {
+								true => Some(chrono::Utc::now()),
+								false => None,
+							},
+						}
 					})
 					.collect(),
 			),
@@ -57,10 +67,10 @@ impl TodoRepository for TodoInMemoryRepository {
 		&self,
 		status: Option<String>,
 	) -> Result<Vec<Todo>, FindManyTodoError> {
-		let todos = self.todos.lock().unwrap();
+		let mut todos = self.todos.lock().unwrap().clone();
 
 		if let Some(status) = status {
-			let todos = todos
+			todos = todos
 				.iter()
 				.filter(|todo| match status {
 					ref s if s == "done" => todo.done,
@@ -69,11 +79,11 @@ impl TodoRepository for TodoInMemoryRepository {
 				})
 				.cloned()
 				.collect::<Vec<Todo>>();
-
-			return Ok(todos);
 		}
 
-		Ok(todos.clone())
+		todos.sort_by_cached_key(|todo| Reverse(todo.created_at));
+
+		Ok(todos)
 	}
 
 	async fn mark_as_done(&self, id: Uuid, done: bool) -> Result<Todo, MarkAsDoneError> {
@@ -91,7 +101,7 @@ impl TodoRepository for TodoInMemoryRepository {
 		Ok(todo.clone())
 	}
 
-	async fn delete(&self, id: Uuid) -> Result<(), DeleteError> {
+	async fn delete(&self, id: Uuid) -> Result<Todo, DeleteError> {
 		let mut todos = self.todos.lock().unwrap();
 
 		let index = todos
@@ -99,9 +109,7 @@ impl TodoRepository for TodoInMemoryRepository {
 			.position(|todo: &Todo| todo.id == id)
 			.ok_or(DeleteError::NotFound)?;
 
-		todos.remove(index);
-
-		Ok(())
+		Ok(todos.remove(index))
 	}
 
 	async fn delete_done_todos(&self) -> Result<(), DeleteError> {
@@ -111,4 +119,15 @@ impl TodoRepository for TodoInMemoryRepository {
 
 		Ok(())
 	}
+}
+
+fn random_date_in_range(
+	rng: &mut rand::rngs::ThreadRng,
+	start: NaiveDate,
+	end: NaiveDate,
+) -> chrono::DateTime<chrono::Utc> {
+	let days_in_range = (end - start).num_days();
+	let random_days: i64 = rng.gen_range(0..days_in_range);
+
+	chrono::Utc::now() - Duration::days(random_days)
 }

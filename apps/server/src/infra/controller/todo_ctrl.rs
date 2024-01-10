@@ -8,8 +8,11 @@ use utoipa::IntoParams;
 use uuid::Uuid;
 
 use crate::{
-	domain::{entity::todo::Todo, repository::todo_repository::DynTodoRepository},
-	infra::api_response::{ApiResponse, ApiResponseData},
+	domain::entity::todo::Todo,
+	infra::{
+		api_response::{ApiResponse, ApiResponseData},
+		server::AppState,
+	},
 	usecase::{
 		create_todo_usecase::{self, CreateTodoParams},
 		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
@@ -28,10 +31,10 @@ use crate::{
 	)
 )]
 pub async fn create_todo_ctrl(
-	State(todo_repo): State<DynTodoRepository>,
+	State(app_state): State<AppState>,
 	Json(params): Json<CreateTodoParams>,
 ) -> ApiResponse<Todo> {
-	let create_todo_usecase = create_todo_usecase::CreateTodoUsecase::new(&todo_repo);
+	let create_todo_usecase = create_todo_usecase::CreateTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = create_todo_usecase.exec(params).await?;
 
@@ -59,10 +62,11 @@ pub struct GetAllTodosQuery {
 )]
 
 pub async fn get_all_todos_ctrl(
-	State(todo_repo): State<DynTodoRepository>,
+	State(app_state): State<AppState>,
 	query: Query<GetAllTodosQuery>,
 ) -> ApiResponse<Vec<Todo>> {
-	let get_all_todos_usecase = get_all_todos_usecase::GetAllTodosUsecase::new(&todo_repo);
+	let get_all_todos_usecase =
+		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
 
 	let todos = get_all_todos_usecase.exec(query.status.to_owned()).await?;
 
@@ -82,10 +86,10 @@ pub async fn get_all_todos_ctrl(
 	)
 )]
 pub async fn delete_todo_ctrl(
-	State(_todo_repo): State<DynTodoRepository>,
+	State(app_state): State<AppState>,
 	Path(id): Path<Uuid>,
 ) -> ApiResponse<()> {
-	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&_todo_repo);
+	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
 	delete_todo_usecase.exec(id).await?;
 
@@ -106,10 +110,11 @@ pub async fn delete_todo_ctrl(
 	)
 )]
 pub async fn mark_as_done_todo_ctrl(
-	State(_todo_repo): State<DynTodoRepository>,
+	State(app_state): State<AppState>,
 	Path(id): Path<Uuid>,
 ) -> ApiResponse<Todo> {
-	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+	let mark_as_done_usecase =
+		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, true).await?;
 
@@ -130,10 +135,11 @@ pub async fn mark_as_done_todo_ctrl(
 	)
 )]
 pub async fn mark_as_undone_todo_ctrl(
-	State(_todo_repo): State<DynTodoRepository>,
+	State(app_state): State<AppState>,
 	Path(id): Path<Uuid>,
 ) -> ApiResponse<Todo> {
-	let mark_as_done_usecase = mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&_todo_repo);
+	let mark_as_done_usecase =
+		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, false).await?;
 

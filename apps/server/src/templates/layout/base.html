@@ -6,13 +6,15 @@
         <link href="/assets/main.css" rel="stylesheet" />
         <title>{% block title %}TodoApp (HTMX){% endblock %}</title>
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/class-tools.js"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/loading-states.js"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/remove-me.js"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
 
         {% block head %}{% endblock %}
     </head>
-    <body class="flex justify-center" hx-ext="loading-states">
-        <div class="grid grid-rows-layout h-screen max-w-screen-md flex-1">
+    <body class="flex justify-center" hx-ext="loading-states,class-tools">
+        <div class="grid grid-rows-layout h-screen flex-1">
             <div class="">{% block header %}{% endblock %}</div>
 
             <div class="overflow-auto">{% block content %}{% endblock %}</div>

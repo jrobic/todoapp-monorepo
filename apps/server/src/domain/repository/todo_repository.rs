@@ -13,6 +13,13 @@ pub enum CreateTodoError {
 }
 
 #[derive(Debug)]
+pub enum FindTodoError {
+	NotFound,
+	#[allow(dead_code)]
+	DBInternalError,
+}
+
+#[derive(Debug)]
 pub enum FindManyTodoError {
 	#[allow(dead_code)]
 	DBInternalError,
@@ -38,7 +45,7 @@ pub trait TodoRepository {
 	async fn find_many_todos(&self, status: Option<String>)
 		-> Result<Vec<Todo>, FindManyTodoError>;
 	async fn mark_as_done(&self, id: Uuid, done: bool) -> Result<Todo, MarkAsDoneError>;
-	async fn delete(&self, id: Uuid) -> Result<(), DeleteError>;
+	async fn delete(&self, id: Uuid) -> Result<Todo, DeleteError>;
 	async fn delete_done_todos(&self) -> Result<(), DeleteError>;
 }
 

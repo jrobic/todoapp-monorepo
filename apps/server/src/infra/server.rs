@@ -4,14 +4,34 @@ use std::sync::Arc;
 use axum::routing;
 use axum::{routing::get, Router};
 
+use tokio::sync::broadcast::{channel, Sender};
 use tower_http::services::ServeDir;
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::domain::repository::todo_repository::DynTodoRepository;
 
 use super::controller;
+use super::controller::todos_views_ctrl::TodoUpdate;
 use super::repository;
+
+#[derive(Clone)]
+pub struct AppState {
+	pub todo_repo: DynTodoRepository,
+	pub tx: Arc<Sender<TodoUpdate>>,
+}
+
+impl AppState {
+	pub fn broadcast_update_to_view(&self, update: TodoUpdate) {
+		if self.tx.send(update).is_err() {
+			info!(
+				"Record with Id {} was created but nobody's listening to the stream!",
+				"test"
+			);
+		}
+	}
+}
 
 pub fn create_server() -> Router {
 	let doc = super::api_doc::ApiDoc::openapi();
@@ -40,6 +60,13 @@ pub fn create_server() -> Router {
 
 	let assets_path = current_dir().unwrap().join("assets");
 
+	let (tx, _rx) = channel::<TodoUpdate>(10);
+
+	let app_state = AppState {
+		todo_repo: todo_repo.clone(),
+		tx: Arc::new(tx),
+	};
+
 	let views_router = Router::new()
 		.route(
 			"/hello",
@@ -48,6 +75,10 @@ pub fn create_server() -> Router {
 		.route(
 			"/",
 			routing::get(controller::todos_views_ctrl::render_index_ctrl),
+		)
+		.route(
+			"/list_todos",
+			routing::get(controller::todos_views_ctrl::list_todos_ctrl),
 		)
 		.route(
 			"/create_todo",
@@ -69,6 +100,12 @@ pub fn create_server() -> Router {
 			"/clear_all_completed_todos",
 			routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
 		)
+		.route(
+			"/todos_sse",
+			get(controller::todos_views_ctrl::todos_stream),
+		)
+		.route("/test_sse", get(controller::todos_views_ctrl::test_sse))
+		.route("/stream", get(controller::todos_views_ctrl::stream))
 		.nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()
@@ -76,7 +113,8 @@ pub fn create_server() -> Router {
 		.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
 		.merge(todo_router)
 		.merge(views_router)
-		.with_state(todo_repo)
+		.with_state(app_state)
+		// .with_state(Arc::new(tx))
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.layer(super::tracing::add_tracing_layer());
 

@@ -12,13 +12,18 @@
 
         <ul class="flex gap-4">
             <li>
-                <a class="link hover:text-blue-400" hx-get="/">All</a>
+                <a
+                    class="link hover:text-blue-400"
+                    data-status="all"
+                    hx-on:click="setCurrentStatus('all')"
+                    >All</a
+                >
             </li>
             <li>
                 <a
                     class="link hover:text-blue-400"
                     data-status="pending"
-                    hx-get="/?status=pending"
+                    hx-on:click="setCurrentStatus('pending')"
                     >Active</a
                 >
             </li>
@@ -26,7 +31,7 @@
                 <a
                     class="link hover:text-blue-400"
                     data-status="done"
-                    hx-get="/?status=done"
+                    hx-on:click="setCurrentStatus('done')"
                     >Completed</a
                 >
             </li>
@@ -44,32 +49,22 @@
     </footer>
 
     <script>
-        function setCurrentNavLinks() {
-            const navlinks = document.querySelectorAll("footer > ul > li > a");
-
-            navlinks.forEach((link) => {
-                const current = window.location.search;
-
-                const target = link.getAttribute("hx-get").replace(/^\//, "");
-
-                if (current === target) {
-                    link.classList.add("active");
-                    return;
-                }
-
-                link.classList.remove("active");
-            });
-        }
-
-        document.addEventListener("DOMContentLoaded", function () {
-            setCurrentNavLinks();
+        function setCurrentStatus(status) {
+            document
+                .querySelectorAll("a[data-status]")
+                .forEach((elt) => elt.classList.remove("text-blue-400"));
 
             document
-                .querySelector("footer")
-                .addEventListener("htmx:afterSettle", function (event) {
-                    console.log("afterswap");
-                    setCurrentNavLinks();
-                });
-        });
+                .querySelector(`a[data-status="${status}"]`)
+                .classList.add("text-blue-400");
+
+            if (status === "all") {
+                history.pushState({ status: null }, "", "/stream");
+            } else {
+                history.pushState({ status }, "", `?status=${status}`);
+            }
+
+            htmx.trigger("#trigger_list_todos", "click");
+        }
     </script>
 {% endmacro %}
