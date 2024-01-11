@@ -1,4 +1,2 @@
-{% import "components/list.html" as list %}
-{% import "components/counter.html" as counter %}
-{% call list::render(todos) %}
-{% call counter::render(num_items) %}
+{% include "components/list.html" %}
+{% include "components/counter.html" %}

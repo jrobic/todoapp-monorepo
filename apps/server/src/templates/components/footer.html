@@ -1,84 +1,82 @@
-{% import "components/counter.html" as counter %}
+<footer
+    class="flex items-center p-4 justify-between"
+    hx-target="#list-todos"
+    hx-push-url="true"
+    hx-select-oob="true"
+    hx-select="#list-todos"
+>
+    {% include "components/counter.html" %}
 
-{% macro render(num_items) %}
-    <footer
-        class="flex items-center p-4 justify-between"
-        hx-target="#list-todos"
-        hx-push-url="true"
-        hx-select-oob="true"
-        hx-select="#list-todos"
-    >
-        {% call counter::render(num_items) %}
+    <ul class="flex gap-4">
+        <li>
+            <a
+                class="link hover:text-blue-400"
+                data-status="all"
+                hx-on:click="setCurrentStatus('all')"
+                >All</a
+            >
+        </li>
+        <li>
+            <a
+                class="link hover:text-blue-400"
+                data-status="pending"
+                hx-on:click="setCurrentStatus('pending')"
+                >Active</a
+            >
+        </li>
+        <li>
+            <a
+                class="link hover:text-blue-400"
+                data-status="done"
+                hx-on:click="setCurrentStatus('done')"
+                >Completed</a
+            >
+        </li>
+    </ul>
 
-        <ul class="flex gap-4">
-            <li>
-                <a
-                    class="link hover:text-blue-400"
-                    data-status="all"
-                    hx-on:click="setCurrentStatus('all')"
-                    >All</a
-                >
-            </li>
-            <li>
-                <a
-                    class="link hover:text-blue-400"
-                    data-status="pending"
-                    hx-on:click="setCurrentStatus('pending')"
-                    >Active</a
-                >
-            </li>
-            <li>
-                <a
-                    class="link hover:text-blue-400"
-                    data-status="done"
-                    hx-on:click="setCurrentStatus('done')"
-                    >Completed</a
-                >
-            </li>
-        </ul>
-
-        <button
+    <div></div>
+    <!-- <button
             type="button"
             class="btn btn-ghost"
             hx-confirm="Are you sure to remove all completed todos?"
             hx-disabled-elt="this"
             hx-post="/clear_all_completed_todos"
+            disabled
         >
             Clear completed
-        </button>
-    </footer>
+        </button> -->
+</footer>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const status = urlParams.get("status") || "all";
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get("status") || "all";
 
-            document
-                .querySelector(`a[data-status="${status}"]`)
-                ?.classList.add("text-blue-400");
-        });
+        document
+            .querySelector(`a[data-status="${status}"]`)
+            ?.classList.add("text-blue-400");
+    });
 
-        function setCurrentStatus(status) {
-            if (true) {
-                // TODO: need to handle status change on stream sse
-                return;
-            }
-
-            document
-                .querySelectorAll("a[data-status]")
-                .forEach((elt) => elt.classList.remove("text-blue-400"));
-
-            document
-                .querySelector(`a[data-status="${status}"]`)
-                .classList.add("text-blue-400");
-
-            if (status === "all") {
-                history.pushState({ status: null }, "", "/");
-            } else {
-                history.pushState({ status }, "", `?status=${status}`);
-            }
-
-            // htmx.trigger("#trigger_list_todos", "click");
+    function setCurrentStatus(status) {
+        if (true) {
+            // TODO: need to handle status change on stream sse
+            return;
         }
-    </script>
-{% endmacro %}
+
+        document
+            .querySelectorAll("a[data-status]")
+            .forEach((elt) => elt.classList.remove("text-blue-400"));
+
+        document
+            .querySelector(`a[data-status="${status}"]`)
+            .classList.add("text-blue-400");
+
+        if (status === "all") {
+            history.pushState({ status: null }, "", "/");
+        } else {
+            history.pushState({ status }, "", `?status=${status}`);
+        }
+
+        // htmx.trigger("#trigger_list_todos", "click");
+    }
+</script>

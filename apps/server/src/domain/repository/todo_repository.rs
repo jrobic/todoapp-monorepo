@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use axum::async_trait;
-use uuid::Uuid;
 
 use crate::domain::entity::todo::Todo;
 
@@ -47,8 +46,8 @@ pub trait TodoRepository {
 		&self,
 		status: Option<&String>,
 	) -> Result<Vec<Todo>, FindManyTodoError>;
-	async fn mark_as_done(&self, id: Uuid, done: bool) -> Result<Todo, MarkAsDoneError>;
-	async fn delete(&self, id: Uuid) -> Result<Todo, DeleteError>;
+	async fn mark_as_done(&self, id: String, done: bool) -> Result<Todo, MarkAsDoneError>;
+	async fn delete(&self, id: String) -> Result<Todo, DeleteError>;
 	async fn delete_done_todos(&self) -> Result<(), DeleteError>;
 }
 

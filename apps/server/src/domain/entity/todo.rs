@@ -1,13 +1,19 @@
-use askama::Template;
+use std::fmt::Display;
+
+use nanoid::nanoid;
 use serde::Serialize;
 
 use utoipa::ToSchema;
-use uuid::Uuid;
+
+const ALPHABET: [char; 27] = [
+	'_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+	's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
 
 #[derive(ToSchema, Serialize, Default, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Todo {
-	pub id: Uuid,
+	pub id: String,
 	pub description: String,
 	pub done: bool,
 	pub created_at: chrono::DateTime<chrono::Utc>,
@@ -18,7 +24,7 @@ pub struct Todo {
 impl Todo {
 	pub fn new(description: String) -> Self {
 		Self {
-			id: Uuid::new_v4(),
+			id: nanoid!(21, &ALPHABET, nanoid::rngs::default),
 			description,
 			done: false,
 			created_at: chrono::Utc::now(),
@@ -28,22 +34,23 @@ impl Todo {
 	}
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum TodoOperation {
 	Create,
 	Read,
 	Update,
+	MarkAsDone,
+	MarkAsUndone,
 	Delete,
 }
 
-impl Default for TodoOperation {
-	fn default() -> Self {
-		Self::Read
+impl Display for TodoOperation {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{:?}", self)
 	}
 }
 
-#[derive(Template, Debug, Clone, Serialize)]
-#[template(path = "components/item.html")]
+#[derive(Debug, Clone, Serialize)]
 pub struct TodoView {
 	pub id: String,
 	pub description: String,
@@ -51,19 +58,26 @@ pub struct TodoView {
 	pub created_at: String,
 	pub updated_at: String,
 	pub done_at: String,
-	pub view_opts: TodoViewOpts,
+	pub kind: String,
+	pub can: String,
 }
 
-#[derive(Serialize, Debug, Clone, Default)]
-pub struct TodoViewOpts {
-	pub need_oob: bool,
-	pub need_remove: bool,
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub enum TodoCan {
+	Read,
+	Write,
 }
 
-impl From<Todo> for TodoView {
-	fn from(todo: Todo) -> Self {
+impl Display for TodoCan {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{:?}", self)
+	}
+}
+
+impl TodoView {
+	pub fn new(todo: Todo, kind: TodoOperation, can: TodoCan) -> Self {
 		Self {
-			id: todo.id.to_string(),
+			id: todo.id,
 			description: todo.description,
 			done: todo.done,
 			created_at: todo.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -72,26 +86,8 @@ impl From<Todo> for TodoView {
 				.done_at
 				.map(|d| d.format("%Y-%m-%d %H:%M:%S").to_string())
 				.unwrap_or_default(),
-			view_opts: TodoViewOpts::default(),
+			kind: kind.to_string(),
+			can: can.to_string().to_uppercase(),
 		}
-	}
-}
-
-impl TodoView {
-	pub fn set_view_opts(&mut self, operation: TodoOperation, status: Option<String>) -> &Self {
-		self.view_opts.need_oob = !matches!(operation, TodoOperation::Read | TodoOperation::Create);
-
-		if matches!(operation, TodoOperation::Delete) {
-			self.view_opts.need_remove = true;
-			return self;
-		}
-
-		self.view_opts.need_remove = match status {
-			Some(status) if status == "done" && !self.done => true,
-			Some(status) if status == "pending" && self.done => true,
-			_ => false,
-		};
-
-		self
 	}
 }

@@ -1,0 +1,53 @@
+{% extends "layout/base.html" %}
+
+{% block head %}
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+{% endblock %}
+
+{% block title %}Todos Stream{% endblock %}
+
+{% block header %}
+    <header class="px-4 py-8">
+        <h1>
+            <span
+                class="text-transparent font-extrabold text-5xl bg-gradient-to-r bg-clip-text from-pink-500 to-blue-500"
+            >
+                Todo App Stream
+            </span>
+        </h1>
+        <div class="pt-4">
+            <div class="divider">
+                Last Event <span id="last-event-kind"></span>
+            </div>
+            <div id="last-event" class="min-h-12"></div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <main
+        class="px-4"
+        hx-ext="sse"
+        sse-connect="/todos_sse"
+        sse-swap="update_todo_view"
+        hx-select="[data-type='item']"
+        hx-target="#last-event"
+    >
+        <div class="divider">List all todos</div>
+        <div
+            hx-get="/stream"
+            hx-trigger="sse:update_todo_view"
+            hx-target="#list-todos"
+            hx-select="#list-todos"
+            id="trigger_list_todos"
+        >
+            {% include "components/list.html" %}
+        </div>
+    </main>
+{% endblock %}
+
+{% block footer %}
+    <footer class="flex items-center p-4">
+        {% include "components/counter.html" %}
+    </footer>
+{% endblock %}

@@ -1,8 +1,6 @@
 {% extends "layout/base.html" %}
-{% import "components/footer.html" as footer %}
-{% import "components/list.html" as list %}
 
-{% block title %}Todos Stream{% endblock %}
+{% block title %}Todos App{% endblock %}
 
 {% block header %}
     <header class="px-4 py-8">
@@ -19,7 +17,7 @@
             id="new-todo"
             hx-post="/create_todo"
             hx-target="#list-todos"
-            hx-swap="none"
+            hx-swap="afterbegin"
             hx-on="htmx:afterRequest: document.getElementById('new-todo').reset();"
         >
             <input
@@ -27,7 +25,6 @@
                 name="description"
                 placeholder="What needs to be done?"
                 class="input input-bordered w-full"
-                autofocus
                 required
                 minlength="3"
             />
@@ -36,19 +33,11 @@
 {% endblock %}
 
 {% block content %}
-    <main class="px-4" hx-ext="sse">
-        <div
-            hx-get="/list_todos"
-            hx-trigger="click"
-            hx-target="#list-todos"
-            id="trigger_list_todos"
-        ></div>
-        {% call list::render(todos) %}
-    </main>
+    <main class="px-4" hx-ext="sse">{% include "components/list.html" %}</main>
 {% endblock %}
 
 {% block footer %}
-    {% call footer::render(0) %}
+    {% include "components/footer.html" %}
     <div class="text-sm text-gray-400 text-center">
         <span>Made with love with Rust 🦀 and HTMX</span>
     </div>

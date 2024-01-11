@@ -10,14 +10,13 @@ use axum::{
 	},
 	Form,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt as _};
 use url::Url;
 use utoipa::IntoParams;
-use uuid::Uuid;
 
 use crate::{
-	domain::entity::todo::{TodoOperation, TodoView},
+	domain::entity::todo::{Todo, TodoCan, TodoOperation, TodoView},
 	infra::server::AppState,
 	usecase::{
 		clear_all_completed_todos_usecase,
@@ -34,6 +33,13 @@ pub struct IndexTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "views/stream.html")]
+pub struct StreamTmpl {
+	pub num_items: i32,
+	pub todos: Vec<TodoView>,
+}
+
+#[derive(Template, Clone, Debug)]
 #[template(path = "responses/update_todo.html")]
 pub struct UpdateTodoTmpl {
 	pub todo: TodoView,
@@ -63,7 +69,30 @@ pub async fn render_index_ctrl(
 
 	Ok(IndexTemplate {
 		num_items: todo_len,
-		todos: todos.into_iter().map(|todo| todo.into()).collect(),
+		todos: todos
+			.into_iter()
+			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Write))
+			.collect(),
+	})
+}
+
+pub async fn stream_ctrl(State(app_state): State<AppState>) -> Result<StreamTmpl, ()> {
+	let get_all_todos_usecase =
+		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
+
+	let todos = match get_all_todos_usecase.exec(None).await {
+		Ok(todos) => todos,
+		Err(_) => return Err(()),
+	};
+
+	let todo_len = app_state.todo_repo.find_many_todos(None).await.unwrap().len() as i32;
+
+	Ok(StreamTmpl {
+		num_items: todo_len,
+		todos: todos
+			.into_iter()
+			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Read))
+			.collect(),
 	})
 }
 
@@ -93,7 +122,10 @@ pub async fn list_todos_ctrl(
 		app_state.todo_repo.find_many_todos(query.status.as_ref()).await.unwrap().len() as i32;
 
 	ListTodosTmpl {
-		todos: todos.into_iter().map(|todo| todo.into()).collect(),
+		todos: todos
+			.into_iter()
+			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Write))
+			.collect(),
 		num_items: todo_len,
 	}
 }
@@ -115,24 +147,21 @@ pub async fn create_todo_ctrl(
 	let todo = usecase.exec(CreateTodoParams { description }).await.unwrap();
 	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
-	let mut todo_view: TodoView = todo.into();
-	todo_view.set_view_opts(TodoOperation::Create, status);
+	let todo_view = TodoView::new(todo, TodoOperation::Create, TodoCan::Write);
 
-	app_state.broadcast_update_to_view(TodoUpdate {
-		kind: MutationKind::Create,
-		todos: vec![todo_view.clone()],
-		num_items: todo_len,
-	});
-
-	UpdateTodoTmpl {
+	let update = UpdateTodoTmpl {
 		todo: todo_view,
 		num_items: todo_len,
-	}
+	};
+
+	app_state.broadcast_update_to_view(update.clone());
+
+	update
 }
 
 pub async fn mark_as_done_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 	headers: HeaderMap,
 ) -> UpdateTodoTmpl {
 	let mark_as_done_usecase =
@@ -143,24 +172,21 @@ pub async fn mark_as_done_todo_ctrl(
 	let todo = mark_as_done_usecase.exec(id, true).await.unwrap();
 	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
-	let mut todo_view: TodoView = todo.into();
-	todo_view.set_view_opts(TodoOperation::Update, status);
+	let todo_view = TodoView::new(todo, TodoOperation::MarkAsDone, TodoCan::Write);
 
-	app_state.broadcast_update_to_view(TodoUpdate {
-		kind: MutationKind::MarkAsDone,
-		todos: vec![todo_view.clone()],
-		num_items: todo_len,
-	});
-
-	UpdateTodoTmpl {
+	let update = UpdateTodoTmpl {
 		todo: todo_view,
 		num_items: todo_len,
-	}
+	};
+
+	app_state.broadcast_update_to_view(update.clone());
+
+	update
 }
 
 pub async fn mark_as_undone_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 	headers: HeaderMap,
 ) -> UpdateTodoTmpl {
 	let mark_as_done_usecase =
@@ -171,24 +197,21 @@ pub async fn mark_as_undone_todo_ctrl(
 	let status = extract_status_from_header(headers);
 	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
-	let mut todo_view: TodoView = todo.into();
-	todo_view.set_view_opts(TodoOperation::Update, status);
+	let todo_view = TodoView::new(todo, TodoOperation::MarkAsUndone, TodoCan::Write);
 
-	app_state.broadcast_update_to_view(TodoUpdate {
-		kind: MutationKind::MarkAsUndone,
-		todos: vec![todo_view.clone()],
-		num_items: todo_len,
-	});
-
-	UpdateTodoTmpl {
+	let update = UpdateTodoTmpl {
 		todo: todo_view,
 		num_items: todo_len,
-	}
+	};
+
+	app_state.broadcast_update_to_view(update.clone());
+
+	update
 }
 
 pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 	headers: HeaderMap,
 ) -> UpdateTodoTmpl {
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
@@ -198,58 +221,16 @@ pub async fn delete_todo_ctrl(
 	let status = extract_status_from_header(headers);
 	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
-	let mut todo_view: TodoView = todo.into();
-	todo_view.set_view_opts(TodoOperation::Delete, status);
+	let todo_view = TodoView::new(todo, TodoOperation::Delete, TodoCan::Write);
 
-	app_state.broadcast_update_to_view(TodoUpdate {
-		kind: MutationKind::Remove,
-		todos: vec![todo_view.clone()],
-		num_items: todo_len,
-	});
-
-	UpdateTodoTmpl {
+	let update = UpdateTodoTmpl {
 		todo: todo_view,
 		num_items: todo_len,
-	}
-}
+	};
 
-pub async fn clear_all_completed_todos_ctrl(
-	State(app_state): State<AppState>,
-	headers: HeaderMap,
-) -> IndexTemplate {
-	let clear_all_completed_todos_usecase =
-		clear_all_completed_todos_usecase::ClearAllCompletedTodosUsecase::new(&app_state.todo_repo);
+	app_state.broadcast_update_to_view(update.clone());
 
-	clear_all_completed_todos_usecase.exec().await.unwrap();
-
-	let status = extract_status_from_header(headers);
-
-	let get_all_todos_usecase =
-		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
-
-	let todos = get_all_todos_usecase.exec(status.clone().as_ref()).await.unwrap();
-
-	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
-
-	let todo_views = todos
-		.into_iter()
-		.map(|todo| {
-			let mut todo_view: TodoView = todo.into();
-			todo_view.set_view_opts(TodoOperation::Delete, status.clone());
-			todo_view
-		})
-		.collect::<Vec<TodoView>>();
-
-	app_state.broadcast_update_to_view(TodoUpdate {
-		kind: MutationKind::ClearAllCompleted,
-		todos: vec![],
-		num_items: todo_len,
-	});
-
-	IndexTemplate {
-		num_items: todo_len,
-		todos: todo_views,
-	}
+	update
 }
 
 fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
@@ -265,23 +246,6 @@ fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
 	hash_query.get("status").map(|s| s.to_string())
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub enum MutationKind {
-	Create,
-	MarkAsDone,
-	MarkAsUndone,
-	Remove,
-	ClearAllCompleted,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TodoUpdate {
-	pub kind: MutationKind,
-	pub todos: Vec<TodoView>,
-	pub num_items: i32,
-}
-
-// TODO: need to handle status for filter events per stream
 pub async fn todos_stream(
 	State(app_state): State<AppState>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
@@ -293,17 +257,14 @@ pub async fn todos_stream(
 		stream
 			.map(
 				|msg: Result<
-					TodoUpdate,
+					UpdateTodoTmpl,
 					tokio_stream::wrappers::errors::BroadcastStreamRecvError,
 				>| {
-					let msg = msg.unwrap();
+					let mut msg = msg.unwrap();
 
-					let body = UpdateTodoTmpl {
-						todo: msg.todos[0].clone(),
-						num_items: msg.num_items,
-					};
+					msg.todo.can = TodoCan::Read.to_string().to_uppercase();
 
-					Event::default().event("update_todo_view").data(body.render().unwrap())
+					Event::default().event("update_todo_view").data(msg.render().unwrap())
 				},
 			)
 			.map(Ok),

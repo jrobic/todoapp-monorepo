@@ -1,21 +1,6 @@
-{% import "components/item.html" as todo_item %}
-
-{% macro render(todos) %}
-    <ul
-        id="list-todos"
-        sse-connect="/todos_sse"
-        sse-swap="update_todo_view"
-        hx-swap="afterbegin"
-    >
-        {% for todo in todos %}
-            <li>
-                {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at, todo.view_opts) %}
-            </li>
-            <ul
-                id="list-todos"
-                sse-swap="update_todo_view"
-                hx-swap="afterbegin"
-            ></ul>
-        {% endfor %}
-    </ul>
-{% endmacro %}
+<ul id="list-todos">
+    {% for todo in todos %}
+        {% set kind = TodoOperation::Read %}
+        <li>{% include "components/item.html" %}</li>
+    {% endfor %}
+</ul>

@@ -1,9 +1,2 @@
-{% import "components/item.html" as todo_item %}
-{% import "components/counter.html" as counter %}
-
-{% if !todo.view_opts.need_oob && todo.view_opts.need_remove %}
-
-{% else %}
-    {% call todo_item::render(todo.id, todo.description, todo.done, todo.created_at, todo.done_at, todo.view_opts) %}
-{% endif %}
-{% call counter::render(num_items) %}
+{% include "components/item.html" %}
+{% include "components/counter.html" %}

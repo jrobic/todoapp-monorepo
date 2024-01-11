@@ -1,65 +1,64 @@
-{% macro render(id, description, done, created_at, done_at, view_opts) %}
-    <div
-        id="{{ todo.description }}"
-        hx-target="#{{ todo.description }}"
-        class="flex gap-4 py-1 cursor-pointer text-lg dark:hover:bg-slate-600 hover:bg-slate-100"
-        hx-swap="outerHTML"
-        {% if view_opts.need_oob %}
-            hx-swap-oob="true"
-        {% endif %}
-        {% if view_opts.need_remove %}
-            hx-ext="remove-me" remove-me="200ms"
-        {% endif %}
-    >
-        <div class="flex items-center gap-2 flex-1">
-            <span
-                {% if todo.done %}
-                    class="text-pink-400"
-                {% else %}
-                    class="text-blue-400 accent-current"
-                {% endif %}
-            >
-                {{ todo.description }}
-            </span>
-        </div>
+<div
+    id="{{ todo.id }}"
+    class="flex gap-4 py-1 cursor-pointer text-lg dark:hover:bg-slate-600 hover:bg-slate-100"
+    hx-target="#{{ todo.id }}"
+    hx-swap="outerHTML"
+    data-kind="{{ todo.kind }}"
+    data-type="item"
+>
+    <div class="flex items-center gap-2 flex-1">
+        <span
+            {% if todo.done %}
+                class="text-pink-400"
+            {% else %}
+                class="text-blue-400 accent-current"
+            {% endif %}
+        >
+            {{ todo.description }}
+        </span>
+    </div>
 
-        <div class="grid grid-cols-2 items-center gap-2">
-            <span class="text-xs text-gray-300"> {{ todo.created_at }} </span>
-            <span class="text-xs text-green-400"> {{ todo.done_at }} </span>
-        </div>
+    <div class="grid grid-cols-2 items-center gap-2">
+        <span class="text-xs text-gray-300"> {{ todo.created_at }} </span>
+        <span class="text-xs text-green-400"> {{ todo.done_at }} </span>
+    </div>
 
-        <div class="flex gap-1">
-            <button
-                type="button"
-                {% if todo.done %}
+    <div class="flex gap-1">
+        {% if todo.can == "WRITE" %}
+            {% if todo.done %}
+                <button
+                    type="button"
+                    data-action="todo-undone"
                     class="btn btn-circle btn-sm btn-ghost hover:bg-fuchsia-400"
                     hx-post="/mark_as_undone/{{ todo.id }}"
-                {% else %}
+                    hx-trigger="click"
+                >
+                    ✘
+                </button>
+            {% else %}
+                <button
+                    type="button"
+                    data-action="todo-done"
                     class="btn btn-circle btn-sm btn-ghost hover:bg-teal-400"
                     hx-post="/mark_as_done/{{ todo.id }}"
-                {% endif %}
-                hx-trigger="click"
-                hx-swap="none"
-                hx-target="#{{ todo.description }}"
-            >
-                {% if todo.done %}
-                    ✘
-                {% else %}
+                    hx-trigger="click"
+                >
                     ✔︎
-                {% endif %}
-            </button>
+                </button>
+            {% endif %}
             <button
                 type="button"
+                data-action="todo-remove"
                 class="btn btn-circle btn-sm btn-ghost hover:bg-red-400"
                 hx-delete="/remove_todo/{{ todo.id }}"
                 hx-trigger="click"
-                hx-swap="none"
-                hx-target="#{{ todo.description }}"
                 hx-confirm="Are you sure you want to delete this todo?"
                 hx-disabled-elt="this"
+                hx-target="#{{ todo.id }}"
+                hx-swap="delete"
             >
                 🗑
             </button>
-        </div>
+        {% endif %}
     </div>
-{% endmacro %}
+</div>

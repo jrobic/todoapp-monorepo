@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::{
 	entity::todo::Todo,
 	exception::TodoException,
@@ -17,7 +15,7 @@ impl<'a> DeleteTodoUsecase<'a> {
 		Self { todo_repo }
 	}
 
-	pub async fn exec(&self, id: Uuid) -> Result<Todo, TodoException> {
+	pub async fn exec(&self, id: String) -> Result<Todo, TodoException> {
 		match self.todo_repo.delete(id).await {
 			Ok(todo_removed) => Ok(todo_removed),
 			Err(DeleteError::NotFound) => Err(TodoException::NotFound),

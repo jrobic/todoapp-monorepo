@@ -13,17 +13,17 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::domain::repository::todo_repository::DynTodoRepository;
 
 use super::controller;
-use super::controller::todos_views_ctrl::TodoUpdate;
+use super::controller::todos_views_ctrl::UpdateTodoTmpl;
 use super::repository;
 
 #[derive(Clone)]
 pub struct AppState {
 	pub todo_repo: DynTodoRepository,
-	pub tx: Arc<Sender<TodoUpdate>>,
+	pub tx: Arc<Sender<UpdateTodoTmpl>>,
 }
 
 impl AppState {
-	pub fn broadcast_update_to_view(&self, update: TodoUpdate) {
+	pub fn broadcast_update_to_view(&self, update: UpdateTodoTmpl) {
 		if self.tx.send(update).is_err() {
 			info!(
 				"Record with Id {} was created but nobody's listening to the stream!",
@@ -60,7 +60,7 @@ pub fn create_server() -> Router {
 
 	let assets_path = current_dir().unwrap().join("assets");
 
-	let (tx, _rx) = channel::<TodoUpdate>(10);
+	let (tx, _rx) = channel::<UpdateTodoTmpl>(10);
 
 	let app_state = AppState {
 		todo_repo: todo_repo.clone(),
@@ -75,6 +75,10 @@ pub fn create_server() -> Router {
 		.route(
 			"/",
 			routing::get(controller::todos_views_ctrl::render_index_ctrl),
+		)
+		.route(
+			"/stream",
+			routing::get(controller::todos_views_ctrl::stream_ctrl),
 		)
 		.route(
 			"/list_todos",
@@ -96,10 +100,10 @@ pub fn create_server() -> Router {
 			"/remove_todo/:id",
 			routing::delete(controller::todos_views_ctrl::delete_todo_ctrl),
 		)
-		.route(
-			"/clear_all_completed_todos",
-			routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
-		)
+		// .route(
+		// 	"/clear_all_completed_todos",
+		// 	routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
+		// )
 		.route(
 			"/todos_sse",
 			get(controller::todos_views_ctrl::todos_stream),

@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::Deserialize;
 use utoipa::IntoParams;
-use uuid::Uuid;
 
 use crate::{
 	domain::entity::todo::Todo,
@@ -78,7 +77,7 @@ pub async fn get_all_todos_ctrl(
 	delete,
 	path = "/api/todos/{id}",
 	params(
-		("id" = Uuid, Path, description = "Todo item id"),
+		("id" = String, Path, description = "Todo item id"),
 	),
 	responses(
 		(status = 204, description = "Todo item deleted successfully"),
@@ -87,7 +86,7 @@ pub async fn get_all_todos_ctrl(
 )]
 pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 ) -> ApiResponse<()> {
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
@@ -101,7 +100,7 @@ pub async fn delete_todo_ctrl(
 	patch,
 	path = "/api/todos/{id}/mark_as_done",
 	params(
-		("id" = Uuid, Path, description = "Todo item id"),
+		("id" = String, Path, description = "Todo item id"),
 	),
 	responses(
 		(status = 200, description = "Todo item marked as done successfully", body = ApiResponseTodo),
@@ -111,7 +110,7 @@ pub async fn delete_todo_ctrl(
 )]
 pub async fn mark_as_done_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 ) -> ApiResponse<Todo> {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
@@ -126,7 +125,7 @@ pub async fn mark_as_done_todo_ctrl(
 	patch,
 	path = "/api/todos/{id}/mark_as_undone",
 	params(
-		("id" = Uuid, Path, description = "Todo item id"),
+		("id" = String, Path, description = "Todo item id"),
 	),
 	responses(
 		(status = 200, description = "Todo item marked as undone successfully", body = ApiResponseTodo),
@@ -136,7 +135,7 @@ pub async fn mark_as_done_todo_ctrl(
 )]
 pub async fn mark_as_undone_todo_ctrl(
 	State(app_state): State<AppState>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 ) -> ApiResponse<Todo> {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);

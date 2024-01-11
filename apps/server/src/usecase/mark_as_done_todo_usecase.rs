@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::{
 	entity::todo::Todo,
 	exception::TodoException,
@@ -17,7 +15,7 @@ impl<'a> MarkAsDoneTodoUsecase<'a> {
 		Self { todo_repo }
 	}
 
-	pub async fn exec(&self, id: Uuid, done: bool) -> Result<Todo, TodoException> {
+	pub async fn exec(&self, id: String, done: bool) -> Result<Todo, TodoException> {
 		let todo = match self.todo_repo.mark_as_done(id, done).await {
 			Ok(todo) => todo,
 			Err(MarkAsDoneError::NotFound) => return Err(TodoException::NotFound),
