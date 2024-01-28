@@ -16,10 +16,9 @@ use url::Url;
 use utoipa::IntoParams;
 
 use crate::{
-	domain::entity::todo::{Todo, TodoCan, TodoOperation, TodoView},
+	domain::entity::todo::{TodoCan, TodoOperation, TodoView},
 	infra::server::AppState,
 	usecase::{
-		clear_all_completed_todos_usecase,
 		create_todo_usecase::{self, CreateTodoParams},
 		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
 	},

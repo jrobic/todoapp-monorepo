@@ -2,7 +2,6 @@ use std::{cmp::Reverse, sync::Mutex};
 
 use axum::async_trait;
 use chrono::{Duration, NaiveDate};
-use nanoid::nanoid;
 use rand::Rng;
 use random_word::Lang;
 
@@ -21,7 +20,7 @@ impl TodoInMemoryRepository {
 	pub fn new() -> Self {
 		Self {
 			todos: Mutex::new(
-				(1..500)
+				(1..501)
 					.map(|n| {
 						let created_date = random_date_in_range(
 							&mut rand::thread_rng(),

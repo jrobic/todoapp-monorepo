@@ -69,10 +69,6 @@ pub fn create_server() -> Router {
 
 	let views_router = Router::new()
 		.route(
-			"/hello",
-			routing::get(controller::common_views_ctrl::render_hello_ctrl),
-		)
-		.route(
 			"/",
 			routing::get(controller::todos_views_ctrl::render_index_ctrl),
 		)

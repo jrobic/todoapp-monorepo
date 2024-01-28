@@ -13,6 +13,7 @@
                 class="link hover:text-blue-400"
                 data-status="all"
                 hx-on:click="setCurrentStatus('all')"
+                href="/"
                 >All</a
             >
         </li>
@@ -21,6 +22,7 @@
                 class="link hover:text-blue-400"
                 data-status="pending"
                 hx-on:click="setCurrentStatus('pending')"
+                href="/?status=pending"
                 >Active</a
             >
         </li>
@@ -28,7 +30,7 @@
             <a
                 class="link hover:text-blue-400"
                 data-status="done"
-                hx-on:click="setCurrentStatus('done')"
+                href="/?status=done"
                 >Completed</a
             >
         </li>
@@ -56,27 +58,4 @@
             .querySelector(`a[data-status="${status}"]`)
             ?.classList.add("text-blue-400");
     });
-
-    function setCurrentStatus(status) {
-        if (true) {
-            // TODO: need to handle status change on stream sse
-            return;
-        }
-
-        document
-            .querySelectorAll("a[data-status]")
-            .forEach((elt) => elt.classList.remove("text-blue-400"));
-
-        document
-            .querySelector(`a[data-status="${status}"]`)
-            .classList.add("text-blue-400");
-
-        if (status === "all") {
-            history.pushState({ status: null }, "", "/");
-        } else {
-            history.pushState({ status }, "", `?status=${status}`);
-        }
-
-        // htmx.trigger("#trigger_list_todos", "click");
-    }
 </script>
