@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::Infallible, time::Duration};
+use std::{convert::Infallible, time::Duration};
 
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -12,8 +12,8 @@ use axum::{
 	Form,
 };
 use serde::Deserialize;
+use tokio::time::sleep;
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt as _};
-use url::Url;
 use utoipa::IntoParams;
 
 use crate::{
@@ -106,7 +106,7 @@ pub async fn stream_ctrl(State(app_state): State<AppState>) -> Result<StreamTmpl
 #[template(path = "responses/list_todos.html")]
 pub struct ListTodosTmpl {
 	pub todos: Vec<TodoView>,
-	pub num_items: i32,
+	pub num_items: i64,
 }
 
 pub async fn list_todos_ctrl(
@@ -124,15 +124,19 @@ pub async fn list_todos_ctrl(
 		.await
 		.unwrap();
 
-	let todo_len =
-		app_state.todo_repo.find_many_todos(query.status.as_ref()).await.unwrap().len() as i32;
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
+
+	let count = count_todos_usecase.exec(None).await;
+
+	sleep(Duration::from_secs(1)).await;
 
 	ListTodosTmpl {
 		todos: todos
 			.into_iter()
 			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Write))
 			.collect(),
-		num_items: todo_len,
+		num_items: count,
 	}
 }
 
@@ -243,8 +247,6 @@ pub async fn delete_todo_ctrl(
 		"HX-Trigger-After-Swap",
 		"watch-count-todos".parse().unwrap(),
 	);
-
-	tokio::time::sleep(Duration::from_secs(1)).await;
 
 	(new_headers, update)
 }

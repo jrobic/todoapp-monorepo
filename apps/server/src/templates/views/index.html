@@ -10,36 +10,57 @@
             >
                 Todo App
             </span>
-
-            <div id="spinner" class="htmx-indicator">
-                <span class="loading loading-spinner loading-lg"></span>
-            </div>
         </h1>
 
-        <form
-            class="pt-8"
-            id="new-todo"
-            hx-post="/create_todo"
-            hx-target="#list-todos"
-            hx-swap="afterbegin"
-            hx-on="htmx:afterRequest: document.getElementById('new-todo').reset();"
-        >
-            <input
-                type="text"
-                name="description"
-                placeholder="What needs to be done?"
-                class="input input-bordered w-full"
-                required
-                minlength="3"
-            />
-        </form>
+        <div class="pt-8 flex justify-center items-center gap-4">
+            <form
+                id="new-todo"
+                hx-post="/create_todo"
+                hx-target="#list-todos"
+                hx-swap="afterbegin"
+                hx-on="htmx:afterRequest: document.getElementById('new-todo').reset();"
+                class="flex-1"
+            >
+                <input
+                    type="text"
+                    name="description"
+                    placeholder="What needs to be done?"
+                    class="input input-bordered w-full"
+                    required
+                    minlength="3"
+                />
+            </form>
+            <button
+                class="btn btn-square"
+                type="button"
+                aria-label="Refresh todos list"
+                hx-trigger="click"
+                hx-get="/list_todos"
+                hx-target="#list-todos"
+                hx-disabled-elt="this"
+                hx-indicator="svg"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    view-box="0 0 24 24"
+                    stroke-width="{1.5}"
+                    stroke="currentColor"
+                    class="w-6 h-6 spinner"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
+                </svg>
+            </button>
+        </div>
     </header>
 {% endblock %}
 
 {% block content %}
-    <main class="px-4" hx-indicator="#spinner">
-        {% include "components/list.html" %}
-    </main>
+    <main class="px-4">{% include "components/list.html" %}</main>
 {% endblock %}
 
 {% block footer %}

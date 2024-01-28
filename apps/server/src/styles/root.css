@@ -20,6 +20,10 @@
     @apply text-blue-400;
 }
 
+.spinner.htmx-request {
+    @apply animate-spin;
+}
+
 #last-event,
 #list-todos {
     [data-kind] > div:first-child::before {
