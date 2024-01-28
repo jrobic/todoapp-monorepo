@@ -5,11 +5,6 @@ use serde::Serialize;
 
 use utoipa::ToSchema;
 
-const ALPHABET: [char; 27] = [
-	'_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-	's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-];
-
 #[derive(ToSchema, Serialize, Default, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Todo {
@@ -24,7 +19,7 @@ pub struct Todo {
 impl Todo {
 	pub fn new(description: String) -> Self {
 		Self {
-			id: nanoid!(21, &ALPHABET, nanoid::rngs::default),
+			id: nanoid!(),
 			description,
 			done: false,
 			created_at: chrono::Utc::now(),

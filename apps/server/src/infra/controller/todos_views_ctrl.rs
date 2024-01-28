@@ -25,6 +25,8 @@ use crate::{
 	},
 };
 
+use super::helper::extract_status_from_header;
+
 #[derive(Template)]
 #[template(path = "views/index.html")]
 pub struct IndexTemplate {
@@ -256,17 +258,6 @@ pub async fn count_todos_ctrl(State(app_state): State<AppState>, headers: Header
 	let count = count_todos_usecase.exec(status.as_ref()).await;
 
 	count.to_string()
-}
-
-fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
-	let current_url = headers.get("hx-current-url").or(headers.get("referer"));
-
-	current_url.and_then(|url| {
-		let hash_query: HashMap<_, _> =
-			Url::parse(url.to_str().unwrap()).unwrap().query_pairs().into_owned().collect();
-
-		hash_query.get("status").map(|s| s.to_string())
-	})
 }
 
 pub async fn todos_stream(

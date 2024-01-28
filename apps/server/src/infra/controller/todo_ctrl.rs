@@ -1,6 +1,6 @@
 use axum::{
 	extract::{Path, Query, State},
-	http::StatusCode,
+	http::{HeaderMap, StatusCode},
 	Json,
 };
 use serde::Deserialize;
@@ -17,6 +17,8 @@ use crate::{
 		delete_todo_usecase, get_all_todos_usecase, mark_as_done_todo_usecase,
 	},
 };
+
+use super::helper::extract_status_from_header;
 
 #[utoipa::path(
 	tag = "Todo",
@@ -143,4 +145,18 @@ pub async fn mark_as_undone_todo_ctrl(
 	let todo = mark_as_done_usecase.exec(id, false).await?;
 
 	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
+}
+
+pub async fn count_todos_ctrl(
+	State(app_state): State<AppState>,
+	headers: HeaderMap,
+) -> ApiResponse<i64> {
+	let status: Option<String> = extract_status_from_header(headers);
+
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
+
+	let count = count_todos_usecase.exec(status.as_ref()).await;
+
+	Ok(ApiResponseData::success_with_data(count, StatusCode::OK))
 }

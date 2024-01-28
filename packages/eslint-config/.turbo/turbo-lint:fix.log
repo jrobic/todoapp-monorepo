@@ -1,0 +1,8 @@
+
+> @tsmt/eslint-config@0.0.0 lint:fix /Users/jonathanrobic/code/perso/ts-monorepo-template/packages/eslint-config
+> pnpm run lint --fix
+
+
+> @tsmt/eslint-config@0.0.0 lint /Users/jonathanrobic/code/perso/ts-monorepo-template/packages/eslint-config
+> eslint . "--fix"
+

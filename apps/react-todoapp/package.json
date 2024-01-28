@@ -1,0 +1,40 @@
+{
+  "name": "@todoapp-monorepo/react-todoapp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf .turbo dist build *.tsbuildinfo",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint .",
+    "lint:fix": "pnpm run lint --fix",
+    "prettier": "prettier --write .",
+    "check": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "clsx": "2.1.0",
+    "daisyui": "4.6.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-query": "3.39.3"
+  },
+  "devDependencies": {
+    "@todoapp-monorepo/eslint-config": "workspace:*",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
+    "@typescript-eslint/eslint-plugin": "6.19.1",
+    "@typescript-eslint/parser": "6.19.1",
+    "@vitejs/plugin-react-swc": "3.5.0",
+    "autoprefixer": "10.4.17",
+    "eslint": "8.56.0",
+    "postcss": "8.4.33",
+    "postcss-import": "16.0.0",
+    "postcss-nesting": "12.0.2",
+    "prettier": "3.2.4",
+    "tailwindcss": "3.4.1",
+    "typescript": "5.3.3",
+    "vite": "5.0.12"
+  }
+}

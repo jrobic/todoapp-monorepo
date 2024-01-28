@@ -1,10 +1,12 @@
 use std::env::current_dir;
 use std::sync::Arc;
 
+use axum::http::{HeaderName, Method};
 use axum::routing;
 use axum::{routing::get, Router};
 
 use tokio::sync::broadcast::{channel, Sender};
+use tower_http::cors::{self, CorsLayer};
 use tower_http::services::ServeDir;
 use tracing::info;
 use utoipa::OpenApi;
@@ -56,6 +58,10 @@ pub fn create_server() -> Router {
 		.route(
 			"/api/todos/:id/mark_as_undone",
 			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
+		)
+		.route(
+			"/api/todos/count",
+			routing::get(controller::todo_ctrl::count_todos_ctrl),
 		);
 
 	let assets_path = current_dir().unwrap().join("assets");
@@ -118,7 +124,22 @@ pub fn create_server() -> Router {
 		.with_state(app_state)
 		// .with_state(Arc::new(tx))
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
-		.layer(super::tracing::add_tracing_layer());
+		.layer(super::tracing::add_tracing_layer())
+		.layer(
+			CorsLayer::new()
+				.allow_methods([
+					Method::GET,
+					Method::POST,
+					Method::DELETE,
+					Method::PATCH,
+					Method::PUT,
+				])
+				.allow_origin(cors::Any)
+				.allow_headers(vec![
+					HeaderName::from_static("authorization"),
+					HeaderName::from_static("content-type"),
+				]),
+		);
 
 	#[cfg(not(debug_assertions))]
 	let app = {

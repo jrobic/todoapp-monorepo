@@ -1,7 +1,7 @@
 <div
-    id="{{ todo.id }}"
+    id="item-{{ todo.id }}"
     class="flex gap-4 py-1 cursor-pointer text-lg dark:hover:bg-slate-600 hover:bg-slate-100"
-    hx-target="#{{ todo.id }}"
+    hx-target="#item-{{ todo.id }}"
     hx-swap="outerHTML"
     data-kind="{{ todo.kind }}"
     data-type="item"
@@ -54,7 +54,7 @@
                 hx-trigger="click"
                 hx-confirm="Are you sure you want to delete this todo?"
                 hx-disabled-elt="this"
-                hx-target="#{{ todo.id }}"
+                hx-target="#item-{{ todo.id }}"
                 hx-swap="delete"
             >
                 🗑
