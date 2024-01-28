@@ -4,12 +4,16 @@
 
 {% block header %}
     <header class="px-4 py-8">
-        <h1>
+        <h1 class="flex justify-between items-center">
             <span
                 class="text-transparent font-extrabold text-5xl bg-gradient-to-r bg-clip-text from-pink-500 to-blue-500"
             >
                 Todo App
             </span>
+
+            <div id="spinner" class="htmx-indicator">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
         </h1>
 
         <form
@@ -33,7 +37,9 @@
 {% endblock %}
 
 {% block content %}
-    <main class="px-4" hx-ext="sse">{% include "components/list.html" %}</main>
+    <main class="px-4" hx-indicator="#spinner">
+        {% include "components/list.html" %}
+    </main>
 {% endblock %}
 
 {% block footer %}

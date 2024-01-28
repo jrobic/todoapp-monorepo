@@ -1,5 +1,15 @@
 .htmx-indicator {
     opacity: 0;
+    display: none;
+    transition: opacity 500ms ease-in;
+}
+.htmx-request .htmx-indicator {
+    opacity: 1;
+    display: inherit;
+}
+.htmx-request.htmx-indicator {
+    opacity: 1;
+    display: inherit;
 }
 
 [data-loading] {
@@ -25,10 +35,10 @@
         @apply bg-green-400;
     }
     [data-kind="MarkAsDone"] > div:first-child::before {
-        @apply bg-teal-400;
+        @apply bg-fuchsia-400;
     }
     [data-kind="MarkAsUndone"] > div:first-child::before {
-        @apply bg-fuchsia-400;
+        @apply bg-teal-400;
     }
     [data-kind="Delete"] > div:first-child::before {
         @apply bg-red-400;

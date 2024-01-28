@@ -9,11 +9,7 @@
         hx-select="#list-todos"
     >
         <li>
-            <a
-                class="link hover:text-blue-400"
-                data-status="all"
-                hx-on:click="setCurrentStatus('all')"
-                href="/"
+            <a class="link hover:text-blue-400" data-status="all" href="/"
                 >All</a
             >
         </li>
@@ -21,7 +17,6 @@
             <a
                 class="link hover:text-blue-400"
                 data-status="pending"
-                hx-on:click="setCurrentStatus('pending')"
                 href="/?status=pending"
                 >Active</a
             >

@@ -1,6 +1,5 @@
 <ul id="list-todos">
     {% for todo in todos %}
-        {% set kind = TodoOperation::Read %}
         <li>{% include "components/item.html" %}</li>
     {% endfor %}
 </ul>

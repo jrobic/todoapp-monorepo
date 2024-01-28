@@ -242,6 +242,8 @@ pub async fn delete_todo_ctrl(
 		"watch-count-todos".parse().unwrap(),
 	);
 
+	tokio::time::sleep(Duration::from_secs(1)).await;
+
 	(new_headers, update)
 }
 
