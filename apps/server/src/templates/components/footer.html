@@ -1,13 +1,13 @@
-<footer
-    class="flex items-center p-4 justify-between"
-    hx-target="#list-todos"
-    hx-push-url="true"
-    hx-select-oob="true"
-    hx-select="#list-todos"
->
+<footer class="flex items-center p-4 justify-between">
     {% include "components/counter.html" %}
 
-    <ul class="flex gap-4">
+    <ul
+        class="flex gap-4"
+        hx-target="#list-todos"
+        hx-push-url="true"
+        hx-select-oob="true"
+        hx-select="#list-todos"
+    >
         <li>
             <a
                 class="link hover:text-blue-400"

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, convert::Infallible, time::Duration};
 
 use askama::Template;
+use askama_axum::IntoResponse;
 use axum::{
 	extract::{Path, Query, State},
 	http::HeaderMap,
@@ -106,7 +107,7 @@ pub async fn list_todos_ctrl(
 	State(app_state): State<AppState>,
 	Query(query): Query<SearchTodosQuery>,
 	headers: HeaderMap,
-) -> ListTodosTmpl {
+) -> impl IntoResponse {
 	let get_all_todos_usecase =
 		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
 
@@ -138,7 +139,7 @@ pub async fn create_todo_ctrl(
 	State(app_state): State<AppState>,
 	headers: HeaderMap,
 	Form(CreateTodoForm { description }): Form<CreateTodoForm>,
-) -> UpdateTodoTmpl {
+) -> impl IntoResponse {
 	let usecase = create_todo_usecase::CreateTodoUsecase::new(&app_state.todo_repo);
 
 	let status = extract_status_from_header(headers);
@@ -155,14 +156,20 @@ pub async fn create_todo_ctrl(
 
 	app_state.broadcast_update_to_view(update.clone());
 
-	update
+	let mut new_headers = HeaderMap::new();
+	new_headers.insert(
+		"HX-Trigger-After-Swap",
+		"watch-count-todos".parse().unwrap(),
+	);
+
+	(new_headers, update)
 }
 
 pub async fn mark_as_done_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
 	headers: HeaderMap,
-) -> UpdateTodoTmpl {
+) -> impl IntoResponse {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
@@ -180,14 +187,20 @@ pub async fn mark_as_done_todo_ctrl(
 
 	app_state.broadcast_update_to_view(update.clone());
 
-	update
+	let mut new_headers = HeaderMap::new();
+	new_headers.insert(
+		"HX-Trigger-After-Swap",
+		"watch-count-todos".parse().unwrap(),
+	);
+
+	(new_headers, update)
 }
 
 pub async fn mark_as_undone_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
 	headers: HeaderMap,
-) -> UpdateTodoTmpl {
+) -> impl IntoResponse {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
@@ -205,14 +218,20 @@ pub async fn mark_as_undone_todo_ctrl(
 
 	app_state.broadcast_update_to_view(update.clone());
 
-	update
+	let mut new_headers = HeaderMap::new();
+	new_headers.insert(
+		"HX-Trigger-After-Swap",
+		"watch-count-todos".parse().unwrap(),
+	);
+
+	(new_headers, update)
 }
 
 pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
 	headers: HeaderMap,
-) -> UpdateTodoTmpl {
+) -> impl IntoResponse {
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = delete_todo_usecase.exec(id).await.unwrap();
@@ -229,20 +248,33 @@ pub async fn delete_todo_ctrl(
 
 	app_state.broadcast_update_to_view(update.clone());
 
-	update
+	let mut new_headers = HeaderMap::new();
+	new_headers.insert(
+		"HX-Trigger-After-Swap",
+		"watch-count-todos".parse().unwrap(),
+	);
+
+	(new_headers, update)
+}
+
+pub async fn count_todos_ctrl(State(app_state): State<AppState>, headers: HeaderMap) -> String {
+	let status: Option<String> = extract_status_from_header(headers);
+
+	match app_state.todo_repo.count(status.as_ref()).await {
+		Ok(count) => count.to_string(),
+		Err(_) => "0".to_string(),
+	}
 }
 
 fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
-	let current_url = headers
-		.get("hx-current-url")
-		.or(headers.get("referer"))
-		.unwrap()
-		.to_str()
-		.unwrap();
-	let hash_query: HashMap<_, _> =
-		Url::parse(current_url).unwrap().query_pairs().into_owned().collect();
+	let current_url = headers.get("hx-current-url").or(headers.get("referer"));
 
-	hash_query.get("status").map(|s| s.to_string())
+	current_url.and_then(|url| {
+		let hash_query: HashMap<_, _> =
+			Url::parse(url.to_str().unwrap()).unwrap().query_pairs().into_owned().collect();
+
+		hash_query.get("status").map(|s| s.to_string())
+	})
 }
 
 pub async fn todos_stream(

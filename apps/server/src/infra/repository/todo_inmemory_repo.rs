@@ -8,7 +8,8 @@ use random_word::Lang;
 use crate::domain::{
 	entity::todo::Todo,
 	repository::todo_repository::{
-		CreateTodoError, DeleteError, FindManyTodoError, MarkAsDoneError, TodoRepository,
+		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, MarkAsDoneError,
+		TodoRepository,
 	},
 };
 
@@ -66,7 +67,7 @@ impl TodoRepository for TodoInMemoryRepository {
 		&self,
 		status: Option<&String>,
 	) -> Result<Vec<Todo>, FindManyTodoError> {
-		let mut todos = self.todos.lock().unwrap().clone();
+		let mut todos: Vec<Todo> = self.todos.lock().unwrap().clone();
 
 		if let Some(status) = status {
 			todos = todos
@@ -117,6 +118,24 @@ impl TodoRepository for TodoInMemoryRepository {
 		todos.retain(|todo| !todo.done);
 
 		Ok(())
+	}
+
+	async fn count(&self, status: Option<&String>) -> Result<i64, CountTodoError> {
+		let todos: Vec<Todo> = self.todos.lock().unwrap().clone();
+
+		let count = match status {
+			Some(status) => todos
+				.iter()
+				.filter(|todo| match status.as_str() {
+					"done" => todo.done,
+					"pending" => !todo.done,
+					_ => true,
+				})
+				.count(),
+			None => todos.len(),
+		};
+
+		Ok(count as i64)
 	}
 }
 

@@ -39,6 +39,12 @@ pub enum DeleteError {
 	DBInternalError,
 }
 
+#[derive(Debug)]
+pub enum CountTodoError {
+	#[allow(dead_code)]
+	DBInternalError,
+}
+
 #[async_trait]
 pub trait TodoRepository {
 	async fn create_todo(&self, description: String) -> Result<Todo, CreateTodoError>;
@@ -49,6 +55,7 @@ pub trait TodoRepository {
 	async fn mark_as_done(&self, id: String, done: bool) -> Result<Todo, MarkAsDoneError>;
 	async fn delete(&self, id: String) -> Result<Todo, DeleteError>;
 	async fn delete_done_todos(&self) -> Result<(), DeleteError>;
+	async fn count(&self, status: Option<&String>) -> Result<i64, CountTodoError>;
 }
 
 pub type DynTodoRepository = Arc<dyn TodoRepository + Send + Sync>;

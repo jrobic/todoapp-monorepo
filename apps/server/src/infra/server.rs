@@ -101,6 +101,10 @@ pub fn create_server() -> Router {
 		// 	routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
 		// )
 		.route(
+			"/count_todos",
+			routing::get(controller::todos_views_ctrl::count_todos_ctrl),
+		)
+		.route(
 			"/todos_sse",
 			get(controller::todos_views_ctrl::todos_stream),
 		)
