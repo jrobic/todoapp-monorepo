@@ -193,6 +193,10 @@ pub async fn mark_as_done_todo_ctrl(
 		"watch-count-todos".parse().unwrap(),
 	);
 
+	if status == Some("pending".to_string()) {
+		new_headers.insert("HX-Reswap", "delete".parse().unwrap());
+	}
+
 	(new_headers, update)
 }
 
@@ -223,6 +227,10 @@ pub async fn mark_as_undone_todo_ctrl(
 		"HX-Trigger-After-Swap",
 		"watch-count-todos".parse().unwrap(),
 	);
+
+	if status == Some("done".to_string()) {
+		new_headers.insert("HX-Reswap", "delete".parse().unwrap());
+	}
 
 	(new_headers, update)
 }
