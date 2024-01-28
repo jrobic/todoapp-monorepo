@@ -28,14 +28,14 @@ use crate::{
 #[derive(Template)]
 #[template(path = "views/index.html")]
 pub struct IndexTemplate {
-	pub num_items: i32,
+	pub num_items: i64,
 	pub todos: Vec<TodoView>,
 }
 
 #[derive(Template)]
 #[template(path = "views/stream.html")]
 pub struct StreamTmpl {
-	pub num_items: i32,
+	pub num_items: i64,
 	pub todos: Vec<TodoView>,
 }
 
@@ -43,7 +43,6 @@ pub struct StreamTmpl {
 #[template(path = "responses/update_todo.html")]
 pub struct UpdateTodoTmpl {
 	pub todo: TodoView,
-	pub num_items: i32,
 }
 
 #[derive(Deserialize, IntoParams, Clone, Debug)]
@@ -64,11 +63,13 @@ pub async fn render_index_ctrl(
 		Err(_) => return Err(()),
 	};
 
-	let todo_len =
-		app_state.todo_repo.find_many_todos(query.status.as_ref()).await.unwrap().len() as i32;
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
+
+	let count = count_todos_usecase.exec(query.status.as_ref()).await;
 
 	Ok(IndexTemplate {
-		num_items: todo_len,
+		num_items: count,
 		todos: todos
 			.into_iter()
 			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Write))
@@ -85,10 +86,13 @@ pub async fn stream_ctrl(State(app_state): State<AppState>) -> Result<StreamTmpl
 		Err(_) => return Err(()),
 	};
 
-	let todo_len = app_state.todo_repo.find_many_todos(None).await.unwrap().len() as i32;
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
+
+	let count = count_todos_usecase.exec(None).await;
 
 	Ok(StreamTmpl {
-		num_items: todo_len,
+		num_items: count,
 		todos: todos
 			.into_iter()
 			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Read))
@@ -137,22 +141,15 @@ pub struct CreateTodoForm {
 
 pub async fn create_todo_ctrl(
 	State(app_state): State<AppState>,
-	headers: HeaderMap,
 	Form(CreateTodoForm { description }): Form<CreateTodoForm>,
 ) -> impl IntoResponse {
 	let usecase = create_todo_usecase::CreateTodoUsecase::new(&app_state.todo_repo);
 
-	let status = extract_status_from_header(headers);
-
 	let todo = usecase.exec(CreateTodoParams { description }).await.unwrap();
-	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
 	let todo_view = TodoView::new(todo, TodoOperation::Create, TodoCan::Write);
 
-	let update = UpdateTodoTmpl {
-		todo: todo_view,
-		num_items: todo_len,
-	};
+	let update = UpdateTodoTmpl { todo: todo_view };
 
 	app_state.broadcast_update_to_view(update.clone());
 
@@ -173,17 +170,11 @@ pub async fn mark_as_done_todo_ctrl(
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
-	let status = extract_status_from_header(headers);
-
 	let todo = mark_as_done_usecase.exec(id, true).await.unwrap();
-	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
 
 	let todo_view = TodoView::new(todo, TodoOperation::MarkAsDone, TodoCan::Write);
 
-	let update = UpdateTodoTmpl {
-		todo: todo_view,
-		num_items: todo_len,
-	};
+	let update = UpdateTodoTmpl { todo: todo_view };
 
 	app_state.broadcast_update_to_view(update.clone());
 
@@ -193,6 +184,7 @@ pub async fn mark_as_done_todo_ctrl(
 		"watch-count-todos".parse().unwrap(),
 	);
 
+	let status = extract_status_from_header(headers);
 	if status == Some("pending".to_string()) {
 		new_headers.insert("HX-Reswap", "delete".parse().unwrap());
 	}
@@ -210,15 +202,9 @@ pub async fn mark_as_undone_todo_ctrl(
 
 	let todo = mark_as_done_usecase.exec(id, false).await.unwrap();
 
-	let status = extract_status_from_header(headers);
-	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
-
 	let todo_view = TodoView::new(todo, TodoOperation::MarkAsUndone, TodoCan::Write);
 
-	let update = UpdateTodoTmpl {
-		todo: todo_view,
-		num_items: todo_len,
-	};
+	let update = UpdateTodoTmpl { todo: todo_view };
 
 	app_state.broadcast_update_to_view(update.clone());
 
@@ -228,6 +214,7 @@ pub async fn mark_as_undone_todo_ctrl(
 		"watch-count-todos".parse().unwrap(),
 	);
 
+	let status = extract_status_from_header(headers);
 	if status == Some("done".to_string()) {
 		new_headers.insert("HX-Reswap", "delete".parse().unwrap());
 	}
@@ -238,21 +225,14 @@ pub async fn mark_as_undone_todo_ctrl(
 pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
-	headers: HeaderMap,
 ) -> impl IntoResponse {
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = delete_todo_usecase.exec(id).await.unwrap();
 
-	let status = extract_status_from_header(headers);
-	let todo_len = app_state.todo_repo.find_many_todos(status.as_ref()).await.unwrap().len() as i32;
-
 	let todo_view = TodoView::new(todo, TodoOperation::Delete, TodoCan::Write);
 
-	let update = UpdateTodoTmpl {
-		todo: todo_view,
-		num_items: todo_len,
-	};
+	let update = UpdateTodoTmpl { todo: todo_view };
 
 	app_state.broadcast_update_to_view(update.clone());
 
@@ -268,10 +248,12 @@ pub async fn delete_todo_ctrl(
 pub async fn count_todos_ctrl(State(app_state): State<AppState>, headers: HeaderMap) -> String {
 	let status: Option<String> = extract_status_from_header(headers);
 
-	match app_state.todo_repo.count(status.as_ref()).await {
-		Ok(count) => count.to_string(),
-		Err(_) => "0".to_string(),
-	}
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
+
+	let count = count_todos_usecase.exec(status.as_ref()).await;
+
+	count.to_string()
 }
 
 fn extract_status_from_header(headers: HeaderMap) -> Option<String> {
