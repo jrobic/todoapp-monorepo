@@ -125,7 +125,7 @@ export function useTodoCreateMutation(
     mutationKey: 'todo-create',
     onSuccess: async (newTodo) => {
       queryClient.setQueryData<Todo[]>(['todos', 'all'], (old) => [newTodo].concat(old || []));
-      queryClient.setQueryData<Todo[]>(['todos', 'active'], (old) => [newTodo].concat(old || []));
+      queryClient.setQueryData<Todo[]>(['todos', 'pending'], (old) => [newTodo].concat(old || []));
       queryClient.setQueryData<number>(['todos-count'], (old) => (old || 0) + 1);
     },
     ...queryOptions,
