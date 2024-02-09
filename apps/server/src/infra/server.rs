@@ -184,7 +184,7 @@ pub fn create_server() -> Router {
 }
 
 #[derive(RustEmbed)]
-#[folder = "$CARGO_MANIFEST_DIR/assets/"]
+#[folder = "assets/"]
 #[include = "*.css"]
 #[include = "*.js"]
 pub struct Asset;
