@@ -1,4 +1,3 @@
-use std::env::current_dir;
 use std::sync::Arc;
 
 use askama_axum::IntoResponse;
@@ -11,7 +10,6 @@ use tokio::sync::broadcast::{channel, Sender};
 use tower_http::cors::{self, CorsLayer};
 use tracing::info;
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 use crate::domain::repository::todo_repository::DynTodoRepository;
 
@@ -37,7 +35,7 @@ impl AppState {
 }
 
 pub fn create_server() -> Router {
-	let doc = super::api_doc::ApiDoc::openapi();
+	let doc: utoipa::openapi::OpenApi = super::api_doc::ApiDoc::openapi();
 
 	let todo_repo: DynTodoRepository =
 		Arc::new(repository::todo_inmemory_repo::TodoInMemoryRepository::new());
@@ -63,7 +61,8 @@ pub fn create_server() -> Router {
 		.route(
 			"/api/todos/count",
 			routing::get(controller::todo_ctrl::count_todos_ctrl),
-		);
+		)
+		.route("/api/openapi", get(doc.clone().to_json().unwrap()));
 
 	// let assets_path = current_dir().unwrap().join("assets");
 
@@ -116,11 +115,9 @@ pub fn create_server() -> Router {
 			get(controller::todos_views_ctrl::todos_stream),
 		)
 		.route("/assets/*file", get(static_handler));
-	// .nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()
 		.route("/health", get(controller::common_ctrl::health))
-		.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
 		.merge(todo_router)
 		.merge(views_router)
 		.with_state(app_state)
@@ -144,7 +141,7 @@ pub fn create_server() -> Router {
 		);
 
 	#[cfg(not(debug_assertions))]
-	let app = {
+	let app: Router = {
 		use tower_http::compression::CompressionLayer;
 
 		let compression_layer = CompressionLayer::new()
@@ -160,6 +157,8 @@ pub fn create_server() -> Router {
 	#[cfg(debug_assertions)]
 	let app = {
 		use notify::Watcher;
+		use std::env::current_dir;
+		use utoipa_swagger_ui::SwaggerUi;
 
 		let livereload = tower_livereload::LiveReloadLayer::new()
 			.request_predicate(|req: &axum::http::Request<axum::body::Body>| {
@@ -177,7 +176,8 @@ pub fn create_server() -> Router {
 
 		tracing::info!("Reloading!");
 
-		app.layer(livereload)
+		app.merge(SwaggerUi::new("/swagger").url("/openapi.json", doc))
+			.layer(livereload)
 	};
 
 	app
@@ -210,8 +210,6 @@ where
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
 	let mut path = uri.path().trim_start_matches('/').to_string();
-
-	dbg!(path.clone());
 
 	if path.starts_with("assets/") {
 		path = path.replace("assets/", "");
