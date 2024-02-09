@@ -1,8 +1,8 @@
 import clsx from 'clsx';
 import { useCallback, useState } from 'react';
 
-import { Footer } from './components/footer';
-import { List } from './components/list';
+import { Footer } from './components/Footer';
+import { List } from './components/List';
 import {
   useTodosCountQuery,
   useTodoCreateMutation,

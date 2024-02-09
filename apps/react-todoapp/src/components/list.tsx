@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
 
-import Item, { TodoProps } from './item';
+import Item, { TodoProps } from './Item';
 
 export type ListProps = {
   todos: TodoProps[];

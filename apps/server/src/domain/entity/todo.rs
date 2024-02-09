@@ -33,6 +33,7 @@ impl Todo {
 pub enum TodoOperation {
 	Create,
 	Read,
+	#[allow(dead_code)]
 	Update,
 	MarkAsDone,
 	MarkAsUndone,

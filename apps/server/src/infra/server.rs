@@ -1,13 +1,14 @@
 use std::env::current_dir;
 use std::sync::Arc;
 
-use axum::http::{HeaderName, Method};
+use askama_axum::IntoResponse;
+use axum::http::{header, HeaderName, Method, StatusCode, Uri};
 use axum::routing;
 use axum::{routing::get, Router};
 
+use rust_embed::RustEmbed;
 use tokio::sync::broadcast::{channel, Sender};
 use tower_http::cors::{self, CorsLayer};
-use tower_http::services::ServeDir;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -64,7 +65,7 @@ pub fn create_server() -> Router {
 			routing::get(controller::todo_ctrl::count_todos_ctrl),
 		);
 
-	let assets_path = current_dir().unwrap().join("assets");
+	// let assets_path = current_dir().unwrap().join("assets");
 
 	let (tx, _rx) = channel::<UpdateTodoTmpl>(10);
 
@@ -114,7 +115,8 @@ pub fn create_server() -> Router {
 			"/todos_sse",
 			get(controller::todos_views_ctrl::todos_stream),
 		)
-		.nest_service("/assets", ServeDir::new(assets_path));
+		.route("/assets/*file", get(static_handler));
+	// .nest_service("/assets", ServeDir::new(assets_path));
 
 	let app = Router::new()
 		.route("/health", get(controller::common_ctrl::health))
@@ -179,4 +181,41 @@ pub fn create_server() -> Router {
 	};
 
 	app
+}
+
+#[derive(RustEmbed)]
+#[folder = "$CARGO_MANIFEST_DIR/assets/"]
+#[include = "*.css"]
+#[include = "*.js"]
+pub struct Asset;
+
+pub struct StaticFile<T>(pub T);
+
+impl<T> IntoResponse for StaticFile<T>
+where
+	T: Into<String>,
+{
+	fn into_response(self) -> axum::response::Response {
+		let path = self.0.into();
+
+		match Asset::get(path.as_str()) {
+			Some(content) => {
+				let mime = mime_guess::from_path(path).first_or_octet_stream();
+				([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+			},
+			None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+		}
+	}
+}
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+	let mut path = uri.path().trim_start_matches('/').to_string();
+
+	dbg!(path.clone());
+
+	if path.starts_with("assets/") {
+		path = path.replace("assets/", "");
+	}
+
+	StaticFile(path)
 }
