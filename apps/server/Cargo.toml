@@ -9,11 +9,24 @@ edition = "2021"
 anyhow = "1.0.76"
 askama = { version = "0.12.1", features = ["with-axum", "mime", "mime_guess"] }
 askama_axum = "0.4.0"
-axum = { version = "0.7.2", features = ["tracing"] }
+axum = { version = "0.7.4", features = ["tracing"] }
+axum-tracing-opentelemetry = "0.16.0"
 chrono = { version = "0.4.31", features = ["serde"] }
+dotenv = "0.15.0"
 mime_guess = "2.0.4"
 nanoid = "0.4.0"
 notify = "6.1.1"
+opentelemetry = { version = "0.21.0", features = ["trace"] }
+opentelemetry-otlp = { version = "0.14.0", features = [
+	"metrics",
+	"reqwest-client",
+	"reqwest-rustls",
+	"http-proto",
+	"tls",
+] }
+
+opentelemetry-semantic-conventions = "0.13.0"
+opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
 rand = "0.8.5"
 random_word = { version = "0.4.1", features = ["fr", "en"] }
 regex = "1.10.2"
@@ -32,7 +45,11 @@ tower-http = { version = "0.5.0", features = [
 ] }
 tower-livereload = "0.9.1"
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-opentelemetry = "0.22.0"
+tracing-subscriber = { version = "0.3.18", features = [
+	"env-filter",
+	"registry",
+] }
 url = "2.5.0"
 utoipa = { version = "4.1.0", features = ["chrono"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }

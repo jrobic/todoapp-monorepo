@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use askama_axum::IntoResponse;
-use axum::http::{header, HeaderName, Method, StatusCode, Uri};
+use axum::http::{HeaderName, Method};
 use axum::routing;
 use axum::{routing::get, Router};
 
-use rust_embed::RustEmbed;
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use tokio::sync::broadcast::{channel, Sender};
 use tower_http::cors::{self, CorsLayer};
 use tracing::info;
@@ -13,9 +12,9 @@ use utoipa::OpenApi;
 
 use crate::domain::repository::todo_repository::DynTodoRepository;
 
-use super::controller;
 use super::controller::todos_views_ctrl::UpdateTodoTmpl;
 use super::repository;
+use super::{controller, routes};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -35,36 +34,12 @@ impl AppState {
 }
 
 pub fn create_server() -> Router {
+	let tracing_enabled: bool = std::env::var("TRACING").unwrap_or_else(|_| "0".to_string()) == "1";
+
 	let doc: utoipa::openapi::OpenApi = super::api_doc::ApiDoc::openapi();
 
 	let todo_repo: DynTodoRepository =
 		Arc::new(repository::todo_inmemory_repo::TodoInMemoryRepository::new());
-
-	let todo_router = Router::new()
-		.route(
-			"/api/todos",
-			routing::get(controller::todo_ctrl::get_all_todos_ctrl)
-				.post(controller::todo_ctrl::create_todo_ctrl),
-		)
-		.route(
-			"/api/todos/:id",
-			routing::delete(controller::todo_ctrl::delete_todo_ctrl),
-		)
-		.route(
-			"/api/todos/:id/mark_as_done",
-			routing::patch(controller::todo_ctrl::mark_as_done_todo_ctrl),
-		)
-		.route(
-			"/api/todos/:id/mark_as_undone",
-			routing::patch(controller::todo_ctrl::mark_as_undone_todo_ctrl),
-		)
-		.route(
-			"/api/todos/count",
-			routing::get(controller::todo_ctrl::count_todos_ctrl),
-		)
-		.route("/api/openapi", get(doc.clone().to_json().unwrap()));
-
-	// let assets_path = current_dir().unwrap().join("assets");
 
 	let (tx, _rx) = channel::<UpdateTodoTmpl>(10);
 
@@ -73,72 +48,42 @@ pub fn create_server() -> Router {
 		tx: Arc::new(tx),
 	};
 
-	let views_router = Router::new()
-		.route(
-			"/",
-			routing::get(controller::todos_views_ctrl::render_index_ctrl),
-		)
-		.route(
-			"/stream",
-			routing::get(controller::todos_views_ctrl::stream_ctrl),
-		)
-		.route(
-			"/list_todos",
-			routing::get(controller::todos_views_ctrl::list_todos_ctrl),
-		)
-		.route(
-			"/create_todo",
-			routing::post(controller::todos_views_ctrl::create_todo_ctrl),
-		)
-		.route(
-			"/mark_as_done/:id",
-			routing::post(controller::todos_views_ctrl::mark_as_done_todo_ctrl),
-		)
-		.route(
-			"/mark_as_undone/:id",
-			routing::post(controller::todos_views_ctrl::mark_as_undone_todo_ctrl),
-		)
-		.route(
-			"/remove_todo/:id",
-			routing::delete(controller::todos_views_ctrl::delete_todo_ctrl),
-		)
-		// .route(
-		// 	"/clear_all_completed_todos",
-		// 	routing::post(controller::todos_views_ctrl::clear_all_completed_todos_ctrl),
-		// )
-		.route(
-			"/count_todos",
-			routing::get(controller::todos_views_ctrl::count_todos_ctrl),
-		)
-		.route(
-			"/todos_sse",
-			get(controller::todos_views_ctrl::todos_stream),
-		)
-		.route("/assets/*file", get(static_handler));
+	let cors = CorsLayer::new()
+		.allow_methods([
+			Method::GET,
+			Method::POST,
+			Method::DELETE,
+			Method::PATCH,
+			Method::PUT,
+		])
+		.allow_origin(cors::Any)
+		.allow_headers(vec![
+			HeaderName::from_static("authorization"),
+			HeaderName::from_static("content-type"),
+		]);
 
-	let app = Router::new()
-		.route("/health", get(controller::common_ctrl::health))
-		.merge(todo_router)
-		.merge(views_router)
+	let mut app = Router::new()
+		.merge(routes::api_routes())
+		.merge(routes::views_routes())
 		.with_state(app_state)
 		// .with_state(Arc::new(tx))
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
-		.layer(super::tracing::add_tracing_layer())
-		.layer(
-			CorsLayer::new()
-				.allow_methods([
-					Method::GET,
-					Method::POST,
-					Method::DELETE,
-					Method::PATCH,
-					Method::PUT,
-				])
-				.allow_origin(cors::Any)
-				.allow_headers(vec![
-					HeaderName::from_static("authorization"),
-					HeaderName::from_static("content-type"),
-				]),
-		);
+		.route("/api/openapi", routing::get(doc.clone().to_json().unwrap()))
+		.route("/health", get(controller::common_ctrl::health))
+		.layer(cors)
+		.layer(super::tracing::add_fmt_layer());
+	// .layer(OtelInResponseLayer)
+	// .layer(OtelAxumLayer::default())
+	// .layer(cors)
+	// .route("/health", get(controller::common_ctrl::health))
+	// .route("/api/openapi", routing::get(doc.clone().to_json().unwrap()));
+
+	if tracing_enabled {
+		app = app
+			.layer(OtelInResponseLayer)
+			//start OpenTelemetry trace on incoming request
+			.layer(OtelAxumLayer::default());
+	}
 
 	#[cfg(not(debug_assertions))]
 	let app: Router = {
@@ -181,39 +126,4 @@ pub fn create_server() -> Router {
 	};
 
 	app
-}
-
-#[derive(RustEmbed)]
-#[folder = "assets/"]
-#[include = "*.css"]
-#[include = "*.js"]
-pub struct Asset;
-
-pub struct StaticFile<T>(pub T);
-
-impl<T> IntoResponse for StaticFile<T>
-where
-	T: Into<String>,
-{
-	fn into_response(self) -> axum::response::Response {
-		let path = self.0.into();
-
-		match Asset::get(path.as_str()) {
-			Some(content) => {
-				let mime = mime_guess::from_path(path).first_or_octet_stream();
-				([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
-			},
-			None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
-		}
-	}
-}
-
-async fn static_handler(uri: Uri) -> impl IntoResponse {
-	let mut path = uri.path().trim_start_matches('/').to_string();
-
-	if path.starts_with("assets/") {
-		path = path.replace("assets/", "");
-	}
-
-	StaticFile(path)
 }
