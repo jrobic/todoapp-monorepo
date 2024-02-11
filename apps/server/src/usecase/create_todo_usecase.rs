@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use crate::domain::{
 	entity::todo::Todo,
 	exception::TodoException,
-	repository::todo_repository::{CreateTodoError, DynTodoRepository, TodoRepository},
+	repository::todo_repository::{DynTodoRepository, TodoRepository},
 };
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -25,12 +25,13 @@ impl<'a> CreateTodoUsecase<'a> {
 	}
 
 	pub async fn exec(&self, params: CreateTodoParams) -> Result<Todo, TodoException> {
-		let todo = match self.todo_repo.create_todo(params.description).await {
+		let todo = Todo::new(params.description);
+
+		let new_todo = match self.todo_repo.create_todo(todo).await {
 			Ok(todo) => todo,
-			Err(CreateTodoError::AlreadyExists) => return Err(TodoException::AlreadyExists),
 			Err(_) => return Err(TodoException::Unknown),
 		};
 
-		Ok(todo)
+		Ok(new_todo)
 	}
 }

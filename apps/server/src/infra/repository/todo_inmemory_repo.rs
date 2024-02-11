@@ -8,8 +8,8 @@ use random_word::Lang;
 use crate::domain::{
 	entity::todo::Todo,
 	repository::todo_repository::{
-		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, MarkAsDoneError,
-		TodoRepository,
+		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindTodoError,
+		TodoRepository, UpdateError,
 	},
 };
 
@@ -18,7 +18,7 @@ pub struct TodoInMemoryRepository {
 }
 
 impl TodoInMemoryRepository {
-	pub fn new() -> Self {
+	pub fn new() -> TodoInMemoryRepository {
 		Self {
 			todos: Mutex::new(
 				(1..501)
@@ -47,38 +47,36 @@ impl TodoInMemoryRepository {
 	}
 }
 
+impl Default for TodoInMemoryRepository {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 #[async_trait]
 impl TodoRepository for TodoInMemoryRepository {
-	async fn create_todo(&self, description: String) -> Result<Todo, CreateTodoError> {
+	async fn create_todo(&self, create_todo: Todo) -> Result<Todo, CreateTodoError> {
 		let mut todos = self.todos.lock().unwrap();
 
-		if todos.iter().any(|todo| todo.description == description) {
-			return Err(CreateTodoError::AlreadyExists);
-		}
+		todos.push(create_todo.clone());
 
-		let todo = Todo::new(description);
-
-		todos.push(todo.clone());
-
-		Ok(todo)
+		Ok(create_todo)
 	}
 
-	async fn find_many_todos(
-		&self,
-		status: Option<&String>,
-	) -> Result<Vec<Todo>, FindManyTodoError> {
+	async fn find_by_id(&self, id: String) -> Result<Todo, FindTodoError> {
+		let todos = self.todos.lock().unwrap();
+
+		let todo =
+			todos.iter().find(|todo: &&Todo| todo.id == id).ok_or(FindTodoError::NotFound)?;
+
+		Ok(todo.clone())
+	}
+
+	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
 		let mut todos: Vec<Todo> = self.todos.lock().unwrap().clone();
 
-		if let Some(status) = status {
-			todos = todos
-				.iter()
-				.filter(|todo| match status {
-					s if s == "done" => todo.done,
-					s if s == "pending" => !todo.done,
-					_ => true,
-				})
-				.cloned()
-				.collect::<Vec<Todo>>();
+		if let Some(done) = done {
+			todos = todos.iter().filter(|todo| todo.done == *done).cloned().collect::<Vec<Todo>>();
 		}
 
 		todos.sort_by_cached_key(|todo| Reverse(todo.created_at));
@@ -86,22 +84,20 @@ impl TodoRepository for TodoInMemoryRepository {
 		Ok(todos)
 	}
 
-	async fn mark_as_done(&self, id: String, done: bool) -> Result<Todo, MarkAsDoneError> {
+	async fn update(&self, update_todo: Todo) -> Result<Todo, UpdateError> {
 		let mut todos = self.todos.lock().unwrap();
 
-		let todo = todos
-			.iter_mut()
-			.find(|todo: &&mut Todo| todo.id == id)
-			.ok_or(MarkAsDoneError::NotFound)?;
+		let index = todos
+			.iter()
+			.position(|todo: &Todo| todo.id == update_todo.id)
+			.ok_or(UpdateError::NotFound)?;
 
-		todo.done = done;
-		todo.done_at = if done { Some(chrono::Utc::now()) } else { None };
-		todo.updated_at = chrono::Utc::now();
+		todos[index] = update_todo.clone();
 
-		Ok(todo.clone())
+		Ok(update_todo)
 	}
 
-	async fn delete(&self, id: String) -> Result<Todo, DeleteError> {
+	async fn delete(&self, id: String) -> Result<(), DeleteError> {
 		let mut todos = self.todos.lock().unwrap();
 
 		let index = todos
@@ -109,29 +105,16 @@ impl TodoRepository for TodoInMemoryRepository {
 			.position(|todo: &Todo| todo.id == id)
 			.ok_or(DeleteError::NotFound)?;
 
-		Ok(todos.remove(index))
-	}
-
-	async fn delete_done_todos(&self) -> Result<(), DeleteError> {
-		let mut todos = self.todos.lock().unwrap();
-
-		todos.retain(|todo| !todo.done);
+		todos.remove(index);
 
 		Ok(())
 	}
 
-	async fn count(&self, status: Option<&String>) -> Result<i64, CountTodoError> {
+	async fn count(&self, done: Option<&bool>) -> Result<i64, CountTodoError> {
 		let todos: Vec<Todo> = self.todos.lock().unwrap().clone();
 
-		let count = match status {
-			Some(status) => todos
-				.iter()
-				.filter(|todo| match status.as_str() {
-					"done" => todo.done,
-					"pending" => !todo.done,
-					_ => true,
-				})
-				.count(),
+		let count = match done {
+			Some(done) => todos.iter().filter(|todo| todo.done == *done).count(),
 			None => todos.len(),
 		};
 

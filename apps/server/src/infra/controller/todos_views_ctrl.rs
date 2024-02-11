@@ -4,7 +4,7 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
 	extract::{Path, Query, State},
-	http::HeaderMap,
+	http::{HeaderMap, StatusCode},
 	response::{
 		sse::{Event, KeepAlive},
 		Sse,
@@ -232,23 +232,33 @@ pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
 ) -> impl IntoResponse {
+	let mut new_headers = HeaderMap::new();
+
+	let todo = match &app_state.todo_repo.find_by_id(id).await {
+		Ok(todo) => todo.to_owned(),
+		Err(_) => return (StatusCode::UNPROCESSABLE_ENTITY, new_headers),
+	};
+
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
-	let todo = delete_todo_usecase.exec(id).await.unwrap();
+	match delete_todo_usecase.exec(todo.id.clone()).await {
+		Ok(_) => (),
+		Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, new_headers),
+	};
 
-	let todo_view = TodoView::new(todo, TodoOperation::Delete, TodoCan::Write);
-
-	let update = UpdateTodoTmpl { todo: todo_view };
+	let update = UpdateTodoTmpl {
+		todo: TodoView::new(todo, TodoOperation::Delete, TodoCan::Write),
+	};
 
 	app_state.broadcast_update_to_view(update.clone());
 
-	let mut new_headers = HeaderMap::new();
 	new_headers.insert(
 		"HX-Trigger-After-Swap",
 		"watch-count-todos".parse().unwrap(),
 	);
+	new_headers.insert("HX-Reswap", "delete".parse().unwrap());
 
-	(new_headers, update)
+	(StatusCode::OK, new_headers)
 }
 
 pub async fn count_todos_ctrl(State(app_state): State<AppState>, headers: HeaderMap) -> String {

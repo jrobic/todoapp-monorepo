@@ -1,0 +1,119 @@
+use axum::async_trait;
+use sqlx::prelude::FromRow;
+
+use crate::domain::{
+	entity::todo::Todo,
+	repository::todo_repository::{
+		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindTodoError,
+		TodoRepository, UpdateError,
+	},
+};
+
+pub struct TodoPgRepository<'a> {
+	pool: &'a sqlx::Pool<sqlx::Postgres>,
+}
+
+impl<'a> TodoPgRepository<'a> {
+	pub fn new(pool: &'a sqlx::Pool<sqlx::Postgres>) -> Self {
+		Self { pool }
+	}
+}
+
+#[derive(FromRow)]
+struct TodosCount {
+	count: i64,
+}
+
+#[async_trait]
+impl<'a> TodoRepository for TodoPgRepository<'a> {
+	async fn create_todo(&self, todo: Todo) -> Result<Todo, CreateTodoError> {
+		sqlx::query_as::<_, Todo>("INSERT INTO todos (id, description, done, created_at, updated_at, done_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *")
+			.bind(todo.id)
+			.bind(todo.description)
+			.bind(todo.done)
+			.bind(todo.created_at)
+			.bind(todo.updated_at)
+			.bind(todo.done_at)
+			.fetch_one(self.pool)
+			.await
+			.map_err(|err| {
+				tracing::error!("Error creating todo: {:?}", err);
+				CreateTodoError::DBInternalError
+			})
+	}
+
+	async fn find_by_id(&self, id: String) -> Result<Todo, FindTodoError> {
+		sqlx::query_as::<_, Todo>("SELECT * FROM todos WHERE id = $1")
+			.bind(id)
+			.fetch_one(self.pool)
+			.await
+			.map_err(|err| {
+				tracing::error!("Error finding todo: {:?}", err);
+				FindTodoError::NotFound
+			})
+	}
+
+	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
+		match done {
+			Some(done) => {
+				sqlx::query_as::<_, Todo>("SELECT * FROM todos WHERE done = $1")
+					.bind(done)
+					.fetch_all(self.pool)
+					.await
+			},
+			None => sqlx::query_as::<_, Todo>("SELECT * FROM todos").fetch_all(self.pool).await,
+		}
+		.map_err(|err| {
+			tracing::error!("Error finding todos: {:?}", err);
+			FindManyTodoError::DBInternalError
+		})
+	}
+
+	async fn update(&self, update_todo: Todo) -> Result<Todo, UpdateError> {
+		sqlx::query_as::<_, Todo>("UPDATE todos SET description = $1, done = $2, updated_at = $3, done_at = $4 WHERE id = $5 RETURNING *")
+			.bind(update_todo.description)
+			.bind(update_todo.done)
+			.bind(update_todo.updated_at)
+			.bind(update_todo.done_at)
+			.bind(update_todo.id)
+			.fetch_one(self.pool)
+			.await
+			.map_err(|err| {
+				tracing::error!("Error updating todo: {:?}", err);
+				UpdateError::DBInternalError
+			})
+	}
+
+	async fn delete(&self, id: String) -> Result<(), DeleteError> {
+		sqlx::query("DELETE FROM todos WHERE id = $1")
+			.bind(id)
+			.execute(self.pool)
+			.await
+			.map_err(|err| {
+				tracing::error!("Error deleting todo: {:?}", err);
+				DeleteError::DBInternalError
+			})
+			.map(|_| ())
+	}
+
+	async fn count(&self, done: Option<&bool>) -> Result<i64, CountTodoError> {
+		match done {
+			Some(done) => {
+				sqlx::query_as::<_, TodosCount>("SELECT COUNT(*) FROM todos WHERE done = $1")
+					.bind(done)
+					.fetch_one(self.pool)
+					.await
+			},
+			None => {
+				sqlx::query_as::<_, TodosCount>("SELECT COUNT(*) FROM todos")
+					.fetch_one(self.pool)
+					.await
+			},
+		}
+		.map_err(|err| {
+			tracing::error!("Error counting todos: {:?}", err);
+			CountTodoError::DBInternalError
+		})
+		.map(|count| count.count)
+	}
+}

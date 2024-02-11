@@ -7,12 +7,13 @@ use axum::{routing::get, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use tokio::sync::broadcast::{channel, Sender};
 use tower_http::cors::{self, CorsLayer};
-use tracing::info;
+
 use utoipa::OpenApi;
 
 use crate::domain::repository::todo_repository::DynTodoRepository;
 
 use super::controller::todos_views_ctrl::UpdateTodoTmpl;
+use super::pg::create_pg_pool;
 use super::repository;
 use super::{controller, routes};
 
@@ -25,7 +26,7 @@ pub struct AppState {
 impl AppState {
 	pub fn broadcast_update_to_view(&self, update: UpdateTodoTmpl) {
 		if self.tx.send(update).is_err() {
-			info!(
+			tracing::info!(
 				"Record with Id {} was created but nobody's listening to the stream!",
 				"test"
 			);
@@ -33,18 +34,23 @@ impl AppState {
 	}
 }
 
-pub fn create_server() -> Router {
+pub async fn create_server() -> Router {
 	let tracing_enabled: bool = std::env::var("TRACING").unwrap_or_else(|_| "0".to_string()) == "1";
+	let inmemory_mode = std::env::var("INMEMORY_MODE").unwrap_or_else(|_| "0".to_string()) == "1";
 
 	let doc: utoipa::openapi::OpenApi = super::api_doc::ApiDoc::openapi();
 
-	let todo_repo: DynTodoRepository =
-		Arc::new(repository::todo_inmemory_repo::TodoInMemoryRepository::new());
+	let pg_pool = create_pg_pool().await;
+
+	let todo_repo: DynTodoRepository = match inmemory_mode {
+		true => Arc::new(repository::todo_inmemory_repo::TodoInMemoryRepository::new()),
+		false => Arc::new(repository::todo_pg_repo::TodoPgRepository::new(pg_pool)),
+	};
 
 	let (tx, _rx) = channel::<UpdateTodoTmpl>(10);
 
 	let app_state = AppState {
-		todo_repo: todo_repo.clone(),
+		todo_repo,
 		tx: Arc::new(tx),
 	};
 
@@ -72,11 +78,6 @@ pub fn create_server() -> Router {
 		.route("/health", get(controller::common_ctrl::health))
 		.layer(cors)
 		.layer(super::tracing::add_fmt_layer());
-	// .layer(OtelInResponseLayer)
-	// .layer(OtelAxumLayer::default())
-	// .layer(cors)
-	// .route("/health", get(controller::common_ctrl::health))
-	// .route("/api/openapi", routing::get(doc.clone().to_json().unwrap()));
 
 	if tracing_enabled {
 		app = app

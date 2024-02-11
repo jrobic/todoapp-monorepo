@@ -12,6 +12,15 @@ impl<'a> CountTodosUsecase<'a> {
 	}
 
 	pub async fn exec(&self, status: Option<&String>) -> i64 {
-		self.todo_repo.count(status).await.unwrap_or(0)
+		let done = match status {
+			Some(status) => match status.as_str() {
+				"done" => Some(&true),
+				"pending" => Some(&false),
+				_ => None,
+			},
+			None => None,
+		};
+
+		self.todo_repo.count(done).await.unwrap_or(0)
 	}
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::{
 	entity::todo::Todo,
 	exception::TodoException,
-	repository::todo_repository::{DynTodoRepository, MarkAsDoneError, TodoRepository},
+	repository::todo_repository::{DynTodoRepository, TodoRepository, UpdateError},
 };
 
 pub struct MarkAsDoneTodoUsecase<'a> {
@@ -16,9 +16,13 @@ impl<'a> MarkAsDoneTodoUsecase<'a> {
 	}
 
 	pub async fn exec(&self, id: String, done: bool) -> Result<Todo, TodoException> {
-		let todo = match self.todo_repo.mark_as_done(id, done).await {
+		let mut todo = self.todo_repo.find_by_id(id).await.unwrap();
+
+		todo = todo.mark_as_done(done).to_owned();
+
+		match self.todo_repo.update(todo.clone()).await {
 			Ok(todo) => todo,
-			Err(MarkAsDoneError::NotFound) => return Err(TodoException::NotFound),
+			Err(UpdateError::NotFound) => return Err(TodoException::NotFound),
 			Err(_) => return Err(TodoException::Unknown),
 		};
 

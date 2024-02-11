@@ -16,7 +16,16 @@ impl<'a> GetAllTodosUsecase<'a> {
 	}
 
 	pub async fn exec(&self, status: Option<&String>) -> Result<Vec<Todo>, TodoException> {
-		match self.todo_repo.find_many_todos(status).await {
+		let done: Option<&bool> = match status {
+			Some(status) => match status.as_str() {
+				"done" => Some(&true),
+				"pending" => Some(&false),
+				_ => None,
+			},
+			None => None,
+		};
+
+		match self.todo_repo.find_many_todos(done).await {
 			Ok(todos) => Ok(todos),
 			Err(_) => Err(TodoException::Unknown),
 		}

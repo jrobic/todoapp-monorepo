@@ -37,7 +37,7 @@ pub async fn create_todo_ctrl(
 ) -> ApiResponse<Todo> {
 	let create_todo_usecase = create_todo_usecase::CreateTodoUsecase::new(&app_state.todo_repo);
 
-	let todo = create_todo_usecase.exec(params).await?;
+	let todo = create_todo_usecase.exec(params).await.unwrap();
 
 	Ok(ApiResponseData::success_with_data(
 		todo,

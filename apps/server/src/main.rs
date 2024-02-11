@@ -13,7 +13,7 @@ async fn main() {
 
 	tracing::info!("Starting server at {}", addr);
 
-	let app = infra::server::create_server();
+	let app = infra::server::create_server().await;
 
 	axum::serve(listener, app)
 		.with_graceful_shutdown(shutdown_signal())
