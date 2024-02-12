@@ -15,3 +15,9 @@ impl HealthUsecase {
 		}
 	}
 }
+
+impl Default for HealthUsecase {
+	fn default() -> Self {
+		Self::new()
+	}
+}
