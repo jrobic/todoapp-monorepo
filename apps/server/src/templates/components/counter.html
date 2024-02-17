@@ -2,8 +2,8 @@
     id="todo-count"
     hx-swap-oob="true"
     hx-get="/count_todos"
-    hx-trigger="load, watch-count-todos from:body"
+    hx-trigger="watch-count-todos from:body"
     hx-swap="innerHTML"
     hx-target="strong"
-    ><strong>0</strong> items left</span
+    ><strong>{{ num_items }}</strong> items left</span
 >

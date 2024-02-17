@@ -11,20 +11,30 @@ type Todo = {
   kind?: string;
 };
 
+type ListTodos = {
+  informations: {
+    total: number;
+  };
+  data: Todo[];
+  success: boolean;
+};
+
 export function useTodosQuery(
   args: { status: string } = { status: 'all' },
-  queryOptions: UseQueryOptions<Todo[], unknown, Todo[], ['todos', string]> = {},
+  queryOptions: UseQueryOptions<ListTodos, unknown, ListTodos, ['todos', string]> = {},
 ) {
   return useQuery(
     ['todos', args.status],
     ({ queryKey }) => {
       const [, status] = queryKey;
 
-      return fetch(`http://localhost:3000/api/todos?status=${status}`)
-        .then((res) => res.json())
-        .then((data) => data?.data);
+      return fetch(`http://localhost:3000/api/todos?status=${status}`).then((res) => res.json());
     },
-    { initialData: [], refetchOnWindowFocus: false, ...queryOptions },
+    {
+      initialData: { data: [], informations: { total: 0 }, success: true },
+      refetchOnWindowFocus: false,
+      ...queryOptions,
+    },
   );
 }
 
@@ -145,23 +155,6 @@ export function useTodoCreateMutation(
     },
     ...queryOptions,
   });
-}
-
-export function useTodosCountQuery(
-  args: { status: string } = { status: 'all' },
-  queryOptions: UseQueryOptions<number, unknown, number, ['todos-count', string]> = {},
-) {
-  return useQuery(
-    ['todos-count', args.status],
-    ({ queryKey }) => {
-      const [, status] = queryKey;
-
-      return fetch(`http://localhost:3000/api/todos/count?status=${status}`)
-        .then((res) => res.json())
-        .then((data) => data?.data);
-    },
-    { initialData: 0, refetchOnWindowFocus: false, ...queryOptions },
-  );
 }
 
 export function refreshTodosList() {

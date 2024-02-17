@@ -26,9 +26,10 @@ impl Default for ApiResponseType {
 }
 
 #[derive(ToSchema)]
-pub enum ApiResponseData<T: Serialize> {
+pub enum ApiResponseData<T: Serialize, I: Serialize> {
 	Data {
 		data: T,
+		informations: Option<I>,
 		status: StatusCode,
 	},
 	#[allow(dead_code)]
@@ -37,12 +38,17 @@ pub enum ApiResponseData<T: Serialize> {
 	StatusCode(StatusCode),
 }
 
-impl<T> ApiResponseData<T>
+impl<T, I> ApiResponseData<T, I>
 where
 	T: Serialize + 'static,
+	I: Serialize + 'static,
 {
-	pub fn success_with_data(data: T, status: StatusCode) -> Self {
-		Self::Data { data, status }
+	pub fn success_with_data(data: T, informations: Option<I>, status: StatusCode) -> Self {
+		Self::Data {
+			data,
+			informations,
+			status,
+		}
 	}
 
 	#[allow(dead_code)]
@@ -57,16 +63,22 @@ where
 	}
 }
 
-impl<T> IntoResponse for ApiResponseData<T>
+impl<T, I> IntoResponse for ApiResponseData<T, I>
 where
 	T: Serialize,
+	I: Serialize,
 {
 	fn into_response(self) -> Response {
 		match self {
-			ApiResponseData::Data { data, status } => (
+			ApiResponseData::Data {
+				data,
+				informations,
 				status,
-				Json(ApiResponseObject::<T> {
+			} => (
+				status,
+				Json(ApiResponseObject::<T, I> {
 					status: status.to_string(),
+					informations,
 					data,
 				}),
 			)
@@ -76,20 +88,28 @@ where
 		}
 	}
 }
+#[derive(Serialize, ToSchema)]
+pub struct ListInformations {
+	pub total: i64,
+}
+#[derive(Serialize, ToSchema)]
+pub struct TodoParams {}
 
 #[derive(Serialize, ToSchema)]
 // it's not possible to use a generic type as a field in a struct with utoipa
 // it's not ideal but we can use aliases to workaround this limitation
-#[aliases(ApiResponseTodo = ApiResponseObject<Todo>, ApiResponseListTodos = ApiResponseObject<Vec<Todo>>)]
-pub struct ApiResponseObject<T>
+#[aliases(ApiResponseTodo = ApiResponseObject<Todo, TodoParams>, ApiResponseListTodos = ApiResponseObject<Vec<Todo>, ListInformations>)]
+pub struct ApiResponseObject<T, I>
 where
 	T: Serialize,
+	I: Serialize,
 {
 	status: String,
+	informations: Option<I>,
 	data: T,
 }
 
-pub type ApiResponse<T> = Result<ApiResponseData<T>, ApiResponseError>;
+pub type ApiResponse<T, I> = Result<ApiResponseData<T, I>, ApiResponseError>;
 
 pub struct ApiResponseError(anyhow::Error);
 

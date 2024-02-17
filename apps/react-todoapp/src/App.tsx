@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react';
 import { Footer } from './components/Footer';
 import { List } from './components/List';
 import {
-  useTodosCountQuery,
   useTodoCreateMutation,
   useTodoDoneMutation,
   useTodoRemoveMutation,
@@ -24,13 +23,6 @@ function App() {
       enabled: !!status,
     },
   );
-  const todosCountQuery = useTodosCountQuery(
-    { status },
-    {
-      enabled: !!status,
-    },
-  );
-
   const todoDoneMutation = useTodoDoneMutation();
   const todoUndoneMutation = useTodoUndoneMutation();
   const todoRemoveMutation = useTodoRemoveMutation();
@@ -130,7 +122,7 @@ function App() {
       <div className="overflow-auto">
         <main className="px-4">
           <List
-            todos={data || []}
+            todos={data?.data || []}
             handleDone={handleTodoDone}
             handleUndone={handleTodoUndone}
             handleRemove={handleTodoRemove}
@@ -139,7 +131,11 @@ function App() {
       </div>
 
       <div className="">
-        <Footer todosCount={todosCountQuery?.data} handleStatus={handleStatus} status={status} />
+        <Footer
+          todosCount={data?.informations?.total}
+          handleStatus={handleStatus}
+          status={status}
+        />
       </div>
     </div>
   );

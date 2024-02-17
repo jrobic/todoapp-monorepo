@@ -12,7 +12,6 @@ use axum::{
 	Form,
 };
 use serde::Deserialize;
-use tokio::time::sleep;
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt as _};
 use utoipa::IntoParams;
 
@@ -29,7 +28,9 @@ use super::helper::extract_status_from_header;
 
 #[derive(Template)]
 #[template(path = "views/index.html")]
-pub struct IndexTemplate {}
+pub struct IndexTemplate {
+	num_items: i64,
+}
 
 #[derive(Template)]
 #[template(path = "views/stream.html")]
@@ -51,7 +52,7 @@ pub struct SearchTodosQuery {
 }
 
 pub async fn render_index_ctrl() -> Result<IndexTemplate, ()> {
-	Ok(IndexTemplate {})
+	Ok(IndexTemplate { num_items: 0 })
 }
 
 pub async fn stream_ctrl(State(app_state): State<AppState>) -> Result<StreamTmpl, ()> {
@@ -92,19 +93,15 @@ pub async fn list_todos_ctrl(
 	let get_all_todos_usecase =
 		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
 
-	let status = extract_status_from_header(headers);
+	let header_status = extract_status_from_header(headers);
+	let status = query.status.clone().or(header_status);
 
-	let todos = get_all_todos_usecase
-		.exec(query.status.clone().or(status).as_ref())
-		.await
-		.unwrap();
+	let todos = get_all_todos_usecase.exec(status.as_ref()).await.unwrap();
 
 	let count_todos_usecase =
 		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
 
-	let count = count_todos_usecase.exec(None).await;
-
-	sleep(Duration::from_secs(1)).await;
+	let count = count_todos_usecase.exec(status.as_ref()).await;
 
 	ListTodosTmpl {
 		todos: todos

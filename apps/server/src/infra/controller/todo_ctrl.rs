@@ -9,7 +9,7 @@ use utoipa::IntoParams;
 use crate::{
 	domain::entity::todo::Todo,
 	infra::{
-		api_response::{ApiResponse, ApiResponseData},
+		api_response::{ApiResponse, ApiResponseData, ListInformations, TodoParams},
 		server::AppState,
 	},
 	usecase::{
@@ -34,13 +34,14 @@ use super::helper::extract_status_from_header;
 pub async fn create_todo_ctrl(
 	State(app_state): State<AppState>,
 	Json(params): Json<CreateTodoParams>,
-) -> ApiResponse<Todo> {
+) -> ApiResponse<Todo, TodoParams> {
 	let create_todo_usecase = create_todo_usecase::CreateTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = create_todo_usecase.exec(params).await.unwrap();
 
 	Ok(ApiResponseData::success_with_data(
 		todo,
+		None,
 		StatusCode::CREATED,
 	))
 }
@@ -64,13 +65,20 @@ pub struct GetAllTodosQuery {
 pub async fn get_all_todos_ctrl(
 	State(app_state): State<AppState>,
 	query: Query<GetAllTodosQuery>,
-) -> ApiResponse<Vec<Todo>> {
+) -> ApiResponse<Vec<Todo>, ListInformations> {
 	let get_all_todos_usecase =
 		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
+	let count_todos_usecase =
+		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
 
+	let count = count_todos_usecase.exec(query.status.as_ref()).await;
 	let todos = get_all_todos_usecase.exec(query.status.as_ref()).await?;
 
-	Ok(ApiResponseData::success_with_data(todos, StatusCode::OK))
+	Ok(ApiResponseData::success_with_data(
+		todos,
+		Some(ListInformations { total: count }),
+		StatusCode::OK,
+	))
 }
 
 #[utoipa::path(
@@ -88,7 +96,7 @@ pub async fn get_all_todos_ctrl(
 pub async fn delete_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
-) -> ApiResponse<()> {
+) -> ApiResponse<(), ()> {
 	let delete_todo_usecase = delete_todo_usecase::DeleteTodoUsecase::new(&app_state.todo_repo);
 
 	delete_todo_usecase.exec(id).await?;
@@ -112,13 +120,17 @@ pub async fn delete_todo_ctrl(
 pub async fn mark_as_done_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
-) -> ApiResponse<Todo> {
+) -> ApiResponse<Todo, TodoParams> {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, true).await?;
 
-	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
+	Ok(ApiResponseData::success_with_data(
+		todo,
+		None,
+		StatusCode::OK,
+	))
 }
 
 #[utoipa::path(
@@ -137,13 +149,17 @@ pub async fn mark_as_done_todo_ctrl(
 pub async fn mark_as_undone_todo_ctrl(
 	State(app_state): State<AppState>,
 	Path(id): Path<String>,
-) -> ApiResponse<Todo> {
+) -> ApiResponse<Todo, TodoParams> {
 	let mark_as_done_usecase =
 		mark_as_done_todo_usecase::MarkAsDoneTodoUsecase::new(&app_state.todo_repo);
 
 	let todo = mark_as_done_usecase.exec(id, false).await?;
 
-	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
+	Ok(ApiResponseData::success_with_data(
+		todo,
+		None,
+		StatusCode::OK,
+	))
 }
 
 #[derive(Deserialize, IntoParams, Clone, Debug)]
@@ -166,7 +182,7 @@ pub async fn count_todos_ctrl(
 	State(app_state): State<AppState>,
 	query: Query<CountTodosQuery>,
 	headers: HeaderMap,
-) -> ApiResponse<i64> {
+) -> ApiResponse<i64, TodoParams> {
 	let status: Option<String> = extract_status_from_header(headers);
 
 	let count_todos_usecase =
@@ -174,5 +190,9 @@ pub async fn count_todos_ctrl(
 
 	let count = count_todos_usecase.exec(query.status.clone().or(status).as_ref()).await;
 
-	Ok(ApiResponseData::success_with_data(count, StatusCode::OK))
+	Ok(ApiResponseData::success_with_data(
+		count,
+		None,
+		StatusCode::OK,
+	))
 }
