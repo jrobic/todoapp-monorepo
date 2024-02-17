@@ -8,7 +8,7 @@ async fn main() {
 	dotenv::dotenv().ok();
 	infra::tracing::setup_tracing();
 
-	let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
+	let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3100));
 	let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
 	tracing::info!("Starting server at {}", addr);

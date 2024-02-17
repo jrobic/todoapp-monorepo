@@ -1,5 +1,6 @@
 use axum::async_trait;
 use sqlx::prelude::FromRow;
+use tracing::instrument;
 
 use crate::domain::{
 	entity::todo::Todo,
@@ -9,6 +10,7 @@ use crate::domain::{
 	},
 };
 
+#[derive(Debug)]
 pub struct TodoPgRepository<'a> {
 	pool: &'a sqlx::Pool<sqlx::Postgres>,
 }
@@ -26,6 +28,7 @@ struct TodosCount {
 
 #[async_trait]
 impl<'a> TodoRepository for TodoPgRepository<'a> {
+	#[instrument(name = "sqlx::create_todo")]
 	async fn create_todo(&self, todo: Todo) -> Result<Todo, CreateTodoError> {
 		sqlx::query_as::<_, Todo>("INSERT INTO todos (id, description, done, created_at, updated_at, done_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *")
 			.bind(todo.id)
@@ -42,6 +45,7 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 			})
 	}
 
+	#[instrument(name = "sqlx::find_by_id")]
 	async fn find_by_id(&self, id: String) -> Result<Todo, FindTodoError> {
 		sqlx::query_as::<_, Todo>("SELECT * FROM todos WHERE id = $1")
 			.bind(id)
@@ -53,6 +57,7 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 			})
 	}
 
+	#[instrument(name = "sqlx::find_many_todos")]
 	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
 		match done {
 			Some(done) => {
@@ -75,6 +80,7 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 		})
 	}
 
+	#[instrument(name = "sqlx::update_todo")]
 	async fn update(&self, update_todo: Todo) -> Result<Todo, UpdateError> {
 		sqlx::query_as::<_, Todo>("UPDATE todos SET description = $1, done = $2, updated_at = $3, done_at = $4 WHERE id = $5 RETURNING *")
 			.bind(update_todo.description)
@@ -90,6 +96,7 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 			})
 	}
 
+	#[instrument(name = "sqlx::delete_todo")]
 	async fn delete(&self, id: String) -> Result<(), DeleteError> {
 		sqlx::query("DELETE FROM todos WHERE id = $1")
 			.bind(id)
@@ -102,6 +109,7 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 			.map(|_| ())
 	}
 
+	#[instrument(name = "sqlx::count_todos")]
 	async fn count(&self, done: Option<&bool>) -> Result<i64, CountTodoError> {
 		match done {
 			Some(done) => {

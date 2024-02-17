@@ -24,8 +24,6 @@
     }
   );
 
-  $: todosCountQuery = useTodosCountQuery({ status: status || '' }, { enabled: !!status });
-
   const todoDoneMutation = useTodoDoneMutation();
   const todoUndoneMutation = useTodoUndoneMutation();
   const todoRemoveMutation = useTodoRemoveMutation();
@@ -115,7 +113,7 @@
   <div class="overflow-auto">
     <main class="px-4">
       <List
-        todos={$todosResult.data || []}
+        todos={$todosResult.data?.data || []}
         on:done={handleTodoDone}
         on:undone={handleTodoUndone}
         on:remove={handleTodoRemove}
@@ -124,6 +122,10 @@
   </div>
 
   <div class="">
-    <Footer todosCount={$todosCountQuery?.data} on:status={handleStatusChange} {status} />
+    <Footer
+      todosCount={$todosResult?.data?.informations.total || 0}
+      on:status={handleStatusChange}
+      {status}
+    />
   </div>
 </div>
