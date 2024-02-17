@@ -6,8 +6,7 @@
     useTodoUndoneMutation,
     useTodoRemoveMutation,
     useTodosQuery,
-    useTodoCreateMutation,
-    useTodosCountQuery
+    useTodoCreateMutation
   } from '../lib/query';
   import Footer from '../lib/Footer.svelte';
 

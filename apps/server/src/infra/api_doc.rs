@@ -19,7 +19,7 @@ use super::api_response::{
 		super::controller::todo_ctrl::mark_as_done_todo_ctrl,
 		super::controller::todo_ctrl::mark_as_undone_todo_ctrl,
 	),
-	components(schemas(Health, Todo, ApiResponseObject<Todo, TodoParams>,ApiResponseObject<Vec<Todo>,ListInformations>,ApiResponseErrorObject,CreateTodoParams)),
+	components(schemas(Health, Todo, ListInformations, TodoParams, ApiResponseObject<Todo, TodoParams>,ApiResponseObject<Vec<Todo>,ListInformations>,ApiResponseErrorObject,CreateTodoParams)),
 	security(),
 	tags(
 		(name = "Todo", description = "Todo items management API"),

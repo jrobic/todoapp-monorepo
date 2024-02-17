@@ -64,3 +64,5 @@ utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 
 [[bin]]
 name = "seed"
+[[bin]]
+name = "openapi"

@@ -17,7 +17,7 @@ async fn main() {
 	truncate_todos(pool).await.expect("Failed to truncate todos");
 	println!("Truncated todos");
 
-	let tasks: Vec<_> = (0..5000).map(|_| create_todo(pool)).collect();
+	let tasks: Vec<_> = (0..500).map(|_| create_todo(pool)).collect();
 
 	let todos: Vec<Todo> = futures::future::join_all(tasks)
 		.await

@@ -68,12 +68,14 @@ pub async fn create_server() -> Router {
 			HeaderName::from_static("content-type"),
 		]);
 
+	let openapi_json = doc.to_pretty_json().unwrap();
+
 	let mut app = Router::new()
 		.merge(routes::api_routes())
 		.merge(routes::views_routes())
 		.with_state(app_state)
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
-		.route("/api/openapi", routing::get(doc.clone().to_json().unwrap()))
+		.route("/api/openapi", routing::get(openapi_json.clone()))
 		.route("/health", get(controller::common_ctrl::health))
 		.layer(cors)
 		.layer(super::tracing::add_fmt_layer());
@@ -83,6 +85,11 @@ pub async fn create_server() -> Router {
 			.layer(OtelInResponseLayer)
 			//start OpenTelemetry trace on incoming request
 			.layer(OtelAxumLayer::default());
+	}
+
+	#[cfg(debug_assertions)]
+	{
+		std::fs::write("openapi.json", openapi_json).unwrap();
 	}
 
 	#[cfg(not(debug_assertions))]
