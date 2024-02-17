@@ -56,12 +56,18 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
 		match done {
 			Some(done) => {
-				sqlx::query_as::<_, Todo>("SELECT * FROM todos WHERE done = $1")
-					.bind(done)
+				sqlx::query_as::<_, Todo>(
+					"SELECT * FROM todos WHERE done = $1 ORDER BY created_at DESC",
+				)
+				.bind(done)
+				.fetch_all(self.pool)
+				.await
+			},
+			None => {
+				sqlx::query_as::<_, Todo>("SELECT * FROM todos ORDER BY created_at DESC")
 					.fetch_all(self.pool)
 					.await
 			},
-			None => sqlx::query_as::<_, Todo>("SELECT * FROM todos").fetch_all(self.pool).await,
 		}
 		.map_err(|err| {
 			tracing::error!("Error finding todos: {:?}", err);

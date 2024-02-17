@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { ReactElement } from 'react';
 
 export type FooterProps = {
-  todosCount: number;
+  todosCount: number | undefined;
   status: string;
   handleStatus: (status: string) => void;
 };

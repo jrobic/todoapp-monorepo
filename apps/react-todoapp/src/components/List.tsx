@@ -1,12 +1,12 @@
 import { ReactElement } from 'react';
 
-import Item, { TodoProps } from './Item';
+import Item, { Todo } from './Item';
 
 export type ListProps = {
-  todos: TodoProps[];
-  handleRemove?: (id: string) => void;
-  handleDone?: (id: string) => void;
-  handleUndone?: (id: string) => void;
+  todos: Todo[];
+  handleRemove: (id: string) => void;
+  handleDone: (id: string) => void;
+  handleUndone: (id: string) => void;
 };
 
 export function List({ todos, handleDone, handleUndone, handleRemove }: ListProps): ReactElement {

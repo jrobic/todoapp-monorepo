@@ -2,15 +2,18 @@
 import clsx from 'clsx';
 import { ReactElement } from 'react';
 
-export type TodoProps = {
+export type Todo = {
   id: string;
   description: string;
   done: boolean;
   createdAt: string;
-  doneAt: string;
-  handleRemove?: () => void;
-  handleDone?: () => void;
-  handleUndone?: () => void;
+  doneAt: string | null;
+};
+
+export type TodoProps = Todo & {
+  handleRemove: () => void;
+  handleDone: () => void;
+  handleUndone: () => void;
 };
 
 export default function Item(todo: TodoProps): ReactElement {

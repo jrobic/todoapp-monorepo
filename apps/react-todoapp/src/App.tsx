@@ -24,7 +24,12 @@ function App() {
       enabled: !!status,
     },
   );
-  const todosCountQuery = useTodosCountQuery();
+  const todosCountQuery = useTodosCountQuery(
+    { status },
+    {
+      enabled: !!status,
+    },
+  );
 
   const todoDoneMutation = useTodoDoneMutation();
   const todoUndoneMutation = useTodoUndoneMutation();

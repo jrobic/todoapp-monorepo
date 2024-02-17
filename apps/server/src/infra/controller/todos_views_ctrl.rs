@@ -29,10 +29,7 @@ use super::helper::extract_status_from_header;
 
 #[derive(Template)]
 #[template(path = "views/index.html")]
-pub struct IndexTemplate {
-	pub num_items: i64,
-	pub todos: Vec<TodoView>,
-}
+pub struct IndexTemplate {}
 
 #[derive(Template)]
 #[template(path = "views/stream.html")]
@@ -53,30 +50,8 @@ pub struct SearchTodosQuery {
 	pub status: Option<String>,
 }
 
-pub async fn render_index_ctrl(
-	State(app_state): State<AppState>,
-	Query(query): Query<SearchTodosQuery>,
-) -> Result<IndexTemplate, ()> {
-	let get_all_todos_usecase =
-		get_all_todos_usecase::GetAllTodosUsecase::new(&app_state.todo_repo);
-
-	let todos = match get_all_todos_usecase.exec(query.status.as_ref()).await {
-		Ok(todos) => todos,
-		Err(_) => return Err(()),
-	};
-
-	let count_todos_usecase =
-		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
-
-	let count = count_todos_usecase.exec(query.status.as_ref()).await;
-
-	Ok(IndexTemplate {
-		num_items: count,
-		todos: todos
-			.into_iter()
-			.map(|todo| TodoView::new(todo, TodoOperation::Read, TodoCan::Write))
-			.collect(),
-	})
+pub async fn render_index_ctrl() -> Result<IndexTemplate, ()> {
+	Ok(IndexTemplate {})
 }
 
 pub async fn stream_ctrl(State(app_state): State<AppState>) -> Result<StreamTmpl, ()> {

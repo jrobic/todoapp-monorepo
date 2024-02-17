@@ -72,7 +72,6 @@ pub async fn create_server() -> Router {
 		.merge(routes::api_routes())
 		.merge(routes::views_routes())
 		.with_state(app_state)
-		// .with_state(Arc::new(tx))
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.route("/api/openapi", routing::get(doc.clone().to_json().unwrap()))
 		.route("/health", get(controller::common_ctrl::health))

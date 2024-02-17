@@ -172,7 +172,7 @@ export function useTodosCountQuery(
     ({ queryKey }) => {
       const [, status] = queryKey;
 
-      return fetch('http://localhost:3000/api/todos/count?status=' + status)
+      return fetch(`http://localhost:3000/api/todos/count?status=${status}`)
         .then((res) => res.json())
         .then((data) => data?.data);
     },

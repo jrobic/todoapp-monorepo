@@ -60,7 +60,12 @@
 {% endblock %}
 
 {% block content %}
-    <main class="px-4">{% include "components/list.html" %}</main>
+    <main
+        class="px-4"
+        hx-get="/list_todos"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+    ></main>
 {% endblock %}
 
 {% block footer %}

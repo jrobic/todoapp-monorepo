@@ -61,7 +61,6 @@ pub struct GetAllTodosQuery {
 		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
 	)
 )]
-
 pub async fn get_all_todos_ctrl(
 	State(app_state): State<AppState>,
 	query: Query<GetAllTodosQuery>,
@@ -147,8 +146,25 @@ pub async fn mark_as_undone_todo_ctrl(
 	Ok(ApiResponseData::success_with_data(todo, StatusCode::OK))
 }
 
+#[derive(Deserialize, IntoParams, Clone, Debug)]
+#[into_params(parameter_in = Query)]
+pub struct CountTodosQuery {
+	pub status: Option<String>,
+}
+
+#[utoipa::path(
+	tag = "Todo",
+	get,
+	path = "/api/count",
+	params(CountTodosQuery),
+	responses(
+		(status = 200, description = "Todo length", body = ApiResponseListTodos),
+		(status = 500, description = "Internal Server Error", body = ApiResponseErrorObject)
+	)
+)]
 pub async fn count_todos_ctrl(
 	State(app_state): State<AppState>,
+	query: Query<CountTodosQuery>,
 	headers: HeaderMap,
 ) -> ApiResponse<i64> {
 	let status: Option<String> = extract_status_from_header(headers);
@@ -156,7 +172,7 @@ pub async fn count_todos_ctrl(
 	let count_todos_usecase =
 		crate::usecase::count_todos_usecase::CountTodosUsecase::new(&app_state.todo_repo);
 
-	let count = count_todos_usecase.exec(status.as_ref()).await;
+	let count = count_todos_usecase.exec(query.status.clone().or(status).as_ref()).await;
 
 	Ok(ApiResponseData::success_with_data(count, StatusCode::OK))
 }

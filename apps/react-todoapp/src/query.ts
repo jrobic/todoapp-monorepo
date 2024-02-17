@@ -43,14 +43,18 @@ export function useTodoDoneMutation(
       const status = new URLSearchParams(window.location.search).get('status') || 'all';
 
       if (status === 'pending') {
-        return queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
+        queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
           (old || []).filter((todo) => todo.id !== variables.id),
         );
+        return;
       }
 
-      return queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
+      queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
         (old || []).map((todo) => (todo.id === variables.id ? updateTodo : todo)),
       );
+
+      queryClient.setQueryData<number>(['todos-count', 'done'], (old) => (old || 0) + 1);
+      queryClient.setQueryData<number>(['todos-count', 'pending'], (old) => (old || 0) - 1);
     },
     ...queryOptions,
   });
@@ -71,14 +75,19 @@ export function useTodoUndoneMutation(
       const status = new URLSearchParams(window.location.search).get('status') || 'all';
 
       if (status === 'done') {
-        return queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
+        queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
           (old || []).filter((todo) => todo.id !== variables.id),
         );
+
+        return;
       }
 
-      return queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
+      queryClient.setQueryData<Todo[]>(['todos', status], (old) =>
         (old || []).map((todo) => (todo.id === variables.id ? updateTodo : todo)),
       );
+
+      queryClient.setQueryData<number>(['todos-count', 'done'], (old) => (old || 0) - 1);
+      queryClient.setQueryData<number>(['todos-count', 'pending'], (old) => (old || 0) + 1);
     },
     ...queryOptions,
   });
@@ -101,7 +110,12 @@ export function useTodoRemoveMutation(
         (old || []).filter((todo) => todo.id !== variables.id),
       );
 
-      queryClient.setQueryData<number>(['todos-count'], (old) => (old || 0) - 1);
+      if (status === 'all' || status === 'pending') {
+        queryClient.setQueryData<number>(['todos-count', 'all'], (old) => (old || 0) - 1);
+        queryClient.setQueryData<number>(['todos-count', 'pending'], (old) => (old || 0) - 1);
+      } else {
+        queryClient.setQueryData<number>(['todos-count', 'done'], (old) => (old || 0) - 1);
+      }
     },
     ...queryOptions,
   });
@@ -126,20 +140,27 @@ export function useTodoCreateMutation(
     onSuccess: async (newTodo) => {
       queryClient.setQueryData<Todo[]>(['todos', 'all'], (old) => [newTodo].concat(old || []));
       queryClient.setQueryData<Todo[]>(['todos', 'pending'], (old) => [newTodo].concat(old || []));
-      queryClient.setQueryData<number>(['todos-count'], (old) => (old || 0) + 1);
+      queryClient.setQueryData<number>(['todos-count', 'all'], (old) => (old || 0) + 1);
+      queryClient.setQueryData<number>(['todos-count', 'pending'], (old) => (old || 0) + 1);
     },
     ...queryOptions,
   });
 }
 
-export function useTodosCountQuery() {
+export function useTodosCountQuery(
+  args: { status: string } = { status: 'all' },
+  queryOptions: UseQueryOptions<number, unknown, number, ['todos-count', string]> = {},
+) {
   return useQuery(
-    'todos-count',
-    () =>
-      fetch('http://localhost:3000/api/todos/count')
+    ['todos-count', args.status],
+    ({ queryKey }) => {
+      const [, status] = queryKey;
+
+      return fetch(`http://localhost:3000/api/todos/count?status=${status}`)
         .then((res) => res.json())
-        .then((data) => data?.data),
-    { initialData: 0, refetchOnWindowFocus: false },
+        .then((data) => data?.data);
+    },
+    { initialData: 0, refetchOnWindowFocus: false, ...queryOptions },
   );
 }
 
