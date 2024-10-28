@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use nanoid::nanoid;
 use serde::Serialize;
-
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(ToSchema, Serialize, Default, Debug, Clone, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
@@ -19,7 +18,7 @@ pub struct Todo {
 impl Todo {
 	pub fn new(description: String) -> Self {
 		Self {
-			id: nanoid!(),
+			id: Uuid::new_v4().to_string(),
 			description,
 			done: false,
 			created_at: chrono::Utc::now(),
@@ -27,6 +26,7 @@ impl Todo {
 			done_at: None,
 		}
 	}
+
 
 	pub fn mark_as_done(&mut self, done: bool) -> &mut Self {
 		self.done = done;

@@ -9,7 +9,7 @@ import {
   useTodoRemoveMutation,
   useTodoUndoneMutation,
   useTodosQuery,
-  refreshTodosList,
+  // refreshTodosList,
 } from './query';
 
 function App() {
@@ -95,7 +95,7 @@ function App() {
             </form>
             <button
               className="btn btn-square"
-              onClick={() => refreshTodosList()}
+              // onClick={() => refreshTodosList()}
               type="button"
               aria-label="Refresh todos list"
               disabled={isLoading || isRefetching}

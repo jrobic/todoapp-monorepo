@@ -8,8 +8,8 @@ use random_word::Lang;
 use crate::domain::{
 	entity::todo::Todo,
 	repository::todo_repository::{
-		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindTodoError,
-		TodoRepository, UpdateError,
+		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindManyTodoPaginatedArgs,
+		FindTodoError, TodoRepository, UpdateError,
 	},
 };
 
@@ -72,11 +72,14 @@ impl TodoRepository for TodoInMemoryRepository {
 		Ok(todo.clone())
 	}
 
-	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
+	async fn find_many_todos(
+		&self,
+		args: FindManyTodoPaginatedArgs,
+	) -> Result<Vec<Todo>, FindManyTodoError> {
 		let mut todos: Vec<Todo> = self.todos.lock().unwrap().clone();
 
-		if let Some(done) = done {
-			todos = todos.iter().filter(|todo| todo.done == *done).cloned().collect::<Vec<Todo>>();
+		if let Some(done) = args.filters.done {
+			todos = todos.iter().filter(|todo| todo.done == done).cloned().collect::<Vec<Todo>>();
 		}
 
 		todos.sort_by_cached_key(|todo| Reverse(todo.created_at));

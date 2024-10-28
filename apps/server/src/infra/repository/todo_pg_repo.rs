@@ -1,12 +1,12 @@
 use axum::async_trait;
-use sqlx::prelude::FromRow;
+use sqlx::{prelude::FromRow, Execute};
 use tracing::instrument;
 
 use crate::domain::{
 	entity::todo::Todo,
 	repository::todo_repository::{
-		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindTodoError,
-		TodoRepository, UpdateError,
+		CountTodoError, CreateTodoError, DeleteError, FindManyTodoError, FindManyTodoPaginatedArgs,
+		FindTodoError, TodoRepository, UpdateError,
 	},
 };
 
@@ -58,27 +58,74 @@ impl<'a> TodoRepository for TodoPgRepository<'a> {
 	}
 
 	#[instrument(name = "sqlx::find_many_todos")]
-	async fn find_many_todos(&self, done: Option<&bool>) -> Result<Vec<Todo>, FindManyTodoError> {
-		match done {
-			Some(done) => {
-				sqlx::query_as::<_, Todo>(
-					"SELECT * FROM todos WHERE done = $1 ORDER BY created_at DESC",
-				)
-				.bind(done)
-				.fetch_all(self.pool)
-				.await
-			},
-			None => {
-				sqlx::query_as::<_, Todo>("SELECT * FROM todos ORDER BY created_at DESC")
-					.fetch_all(self.pool)
-					.await
-			},
+	async fn find_many_todos(
+		&self,
+		args: FindManyTodoPaginatedArgs,
+	) -> Result<Vec<Todo>, FindManyTodoError> {
+		let mut query_builder = sqlx::query_builder::QueryBuilder::new("SELECT * FROM todos");
+		let mut have_where_clause = false;
+
+		if !args.filters.is_empty() || args.cursor.is_some() {
+			query_builder.push(" WHERE");
 		}
-		.map_err(|err| {
+
+		if let Some(cursor) = args.cursor {
+			query_builder.push(" id > ");
+			query_builder.push_bind(cursor);
+			have_where_clause = true;
+		}
+
+		if let Some(done) = args.filters.done {
+			if have_where_clause {
+				query_builder.push(" AND");
+			}
+
+			query_builder.push(" done = ");
+			query_builder.push_bind(done);
+			// have_where_clause = true;
+		}
+
+		query_builder.push(" ORDER BY created_at DESC");
+
+		query_builder.push(" LIMIT ");
+		query_builder.push_bind(args.take);
+
+		query_builder.push(";");
+
+		let query = query_builder.build_query_as();
+
+		dbg!(query.sql().to_string());
+
+		query.fetch_all(self.pool).await.map_err(|err| {
 			tracing::error!("Error finding todos: {:?}", err);
 			FindManyTodoError::DBInternalError
 		})
 	}
+
+	// async fn find_many_todos(
+	// 	&self,
+	// 	args: FindManyTodoPaginatedArgs,
+	// ) -> Result<Vec<Todo>, FindManyTodoError> {
+	// 	match args.filters.done {
+	// 		Some(done) => {
+	// 			sqlx::query_as::<_, Todo>(
+	// 				"SELECT * FROM todos WHERE done = $1 ORDER BY created_at DESC",
+	// 			)
+	// 			.bind(done)
+	// 			.fetch_all(self.pool)
+	// 			.await
+	// 		},
+	// 		None => {
+	// 			sqlx::query_as::<_, Todo>("SELECT * FROM todos ORDER BY created_at DESC")
+	// 				.fetch_all(self.pool)
+	// 				.await
+	// 		},
+	// 	}
+	// 	.map_err(|err| {
+	// 		tracing::error!("Error finding todos: {:?}", err);
+	// 		FindManyTodoError::DBInternalError
+	// 	})
+	// }
 
 	#[instrument(name = "sqlx::update_todo")]
 	async fn update(&self, update_todo: Todo) -> Result<Todo, UpdateError> {

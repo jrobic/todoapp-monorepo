@@ -23,6 +23,10 @@ pub async fn health() -> impl IntoResponse {
 	(StatusCode::OK, Json(heatlh))
 }
 
+pub async fn hello() -> impl IntoResponse {
+	(StatusCode::OK, "Hello, World!").into_response()
+}
+
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 #[include = "*.css"]

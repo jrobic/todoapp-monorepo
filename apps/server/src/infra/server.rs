@@ -77,8 +77,9 @@ pub async fn create_server() -> Router {
 		.fallback(controller::catchers_ctrl::not_found_ctrl)
 		.route("/api/openapi", routing::get(openapi_json.clone()))
 		.route("/health", get(controller::common_ctrl::health))
-		.layer(cors)
-		.layer(super::tracing::add_fmt_layer());
+		.route("/hello", get(controller::common_ctrl::hello) )
+		.layer(cors);
+		// .layer(super::tracing::add_fmt_layer());
 
 	if tracing_enabled {
 		app = app
@@ -92,19 +93,19 @@ pub async fn create_server() -> Router {
 		std::fs::write("openapi.json", openapi_json).unwrap();
 	}
 
-	#[cfg(not(debug_assertions))]
-	let app: Router = {
-		use tower_http::compression::CompressionLayer;
+	// #[cfg(not(debug_assertions))]
+	// let app: Router = {
+	// 	use tower_http::compression::CompressionLayer;
 
-		let compression_layer = CompressionLayer::new()
-			.br(true)
-			.deflate(true)
-			.gzip(true)
-			.zstd(true)
-			.compress_when(|_, _, _: &_, _: &_| true);
+	// 	let compression_layer = CompressionLayer::new()
+	// 		.br(true)
+	// 		.deflate(true)
+	// 		.gzip(true)
+	// 		.zstd(true)
+	// 		.compress_when(|_, _, _: &_, _: &_| true);
 
-		app.layer(compression_layer)
-	};
+	// 	app.layer(compression_layer)
+	// };
 
 	#[cfg(debug_assertions)]
 	let app = {
@@ -117,6 +118,7 @@ pub async fn create_server() -> Router {
 				!req.headers().contains_key("hx-request")
 			})
 			.reload_interval(std::time::Duration::from_millis(500));
+
 		let reloader = livereload.reloader();
 		let mut watcher = notify::recommended_watcher(move |_| reloader.reload()).unwrap();
 
